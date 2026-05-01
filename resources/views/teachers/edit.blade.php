@@ -16,13 +16,13 @@
         </label>
 
         <label>
-            البريد الإلكتروني
-            <input type="email" name="email" value="{{ old('email', $teacher->email) }}" required>
+            اسم المستخدم
+            <input type="text" name="username" value="{{ old('username', $teacher->username) }}" required>
         </label>
 
         <label>
-            كلمة مرور جديدة
-            <input type="text" name="password" placeholder="اتركيه فارغًا إذا لا تريدين تغييرها">
+            كلمة مرور جديدة - 4 خانات
+            <input type="text" name="password" placeholder="اتركيه فارغًا إذا لا تريدين تغييرها" minlength="4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}">
         </label>
 
         <button class="btn" type="submit">حفظ</button>
