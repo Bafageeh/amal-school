@@ -18,10 +18,15 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
+        $data = $request->validate([
+            'username' => ['required', 'string'],
             'password' => ['required'],
         ]);
+
+        $credentials = [
+            'username' => trim($data['username']),
+            'password' => $data['password'],
+        ];
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
@@ -30,8 +35,8 @@ class AuthController extends Controller
         }
 
         return back()
-            ->withErrors(['email' => 'بيانات الدخول غير صحيحة'])
-            ->onlyInput('email');
+            ->withErrors(['username' => 'بيانات الدخول غير صحيحة'])
+            ->onlyInput('username');
     }
 
     public function logout(Request $request)
