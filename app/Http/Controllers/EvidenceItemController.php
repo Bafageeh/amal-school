@@ -45,8 +45,8 @@ class EvidenceItemController extends Controller
             '۹' => '9',
         ]);
 
-        if (preg_match('/^\s*(\d+)/u', $title, $matches)) {
-            return (int) $matches[1];
+        if (preg_match('/\d+/u', $title, $matches)) {
+            return (int) $matches[0];
         }
 
         return PHP_INT_MAX;
