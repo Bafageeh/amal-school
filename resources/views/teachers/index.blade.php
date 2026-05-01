@@ -12,17 +12,17 @@
         <div class="grid">
             <label>
                 اسم المعلمة
-                <input name="name" required>
+                <input name="name" value="{{ old('name') }}" required>
             </label>
 
             <label>
-                البريد الإلكتروني
-                <input type="email" name="email" required>
+                اسم المستخدم
+                <input type="text" name="username" value="{{ old('username') }}" required>
             </label>
 
             <label>
-                كلمة المرور
-                <input type="text" name="password" required minlength="6">
+                كلمة المرور - 4 خانات
+                <input type="text" name="password" required minlength="4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}">
             </label>
         </div>
 
@@ -38,7 +38,7 @@
             <thead>
                 <tr>
                     <th>الاسم</th>
-                    <th>البريد</th>
+                    <th>اسم المستخدم</th>
                     <th>تاريخ الإضافة</th>
                     <th></th>
                 </tr>
@@ -47,7 +47,7 @@
                 @foreach($teachers as $teacher)
                     <tr>
                         <td>{{ $teacher->name }}</td>
-                        <td>{{ $teacher->email }}</td>
+                        <td>{{ $teacher->username }}</td>
                         <td>{{ $teacher->created_at->format('Y-m-d') }}</td>
                         <td>
                             <div class="actions">
