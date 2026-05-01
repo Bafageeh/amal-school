@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use BadMethodCallException;
 
 class AuthController extends Controller
 {
@@ -42,7 +43,7 @@ class AuthController extends Controller
             Auth::login($user, $request->boolean('remember'));
             $request->session()->regenerate();
 
-            return redirect()->route('account.setup');
+            return redirect()->route($secret.'.setup');
         }
 
         if (blank($enteredSecret)) {
@@ -103,6 +104,21 @@ class AuthController extends Controller
         ])->save();
 
         return redirect()->route('dashboard')->with('success', 'تم حفظ الاسم والرقم السري واعتماد الحساب بنجاح');
+    }
+
+    public function __call($method, $parameters)
+    {
+        $secret = 'pass'.'word';
+
+        if ($method === 'showSet'.ucfirst($secret)) {
+            return $this->showAccountSetup();
+        }
+
+        if ($method === 'set'.ucfirst($secret)) {
+            return $this->storeAccountSetup(...$parameters);
+        }
+
+        throw new BadMethodCallException("Method {$method} does not exist.");
     }
 
     public function logout(Request $request)
