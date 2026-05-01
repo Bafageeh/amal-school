@@ -76,7 +76,7 @@ class AuthController extends Controller
             return redirect()->route('dashboard');
         }
 
-        return view('auth.set-'.$secret);
+        return view('auth.account-setup');
     }
 
     public function storeAccountSetup(Request $request)
