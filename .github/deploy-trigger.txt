@@ -1,1 +1,1 @@
-Deploy trigger: 2026-05-02 teacher first-login accounts and auto deploy
+Deploy trigger: 2026-05-02 require name during first login account setup
