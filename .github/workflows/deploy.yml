@@ -43,6 +43,7 @@ jobs:
           test -n "$PROJECT_PATH"
           ssh -i ~/.ssh/amal_github_actions -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH'"
           rsync -az \
+            --delete \
             --exclude='.git/' \
             --exclude='.github/deploy-trigger.txt' \
             --exclude='.env' \
@@ -61,4 +62,4 @@ jobs:
           PROJECT_PATH: /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api
         run: |
           set -e
-          ssh -i ~/.ssh/amal_github_actions -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; pwd; php -v; mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; composer install --no-dev --optimize-autoloader --no-interaction; CACHE_STORE=file php -d display_errors=1 artisan optimize:clear"
+          ssh -i ~/.ssh/amal_github_actions -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; pwd; php -v; mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; composer install --no-dev --optimize-autoloader --no-interaction; php artisan migrate --force; CACHE_STORE=file php -d display_errors=1 artisan optimize:clear"
