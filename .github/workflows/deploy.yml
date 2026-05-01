@@ -15,13 +15,13 @@ jobs:
         env:
           SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
           SSH_USER: ${{ secrets.AMAL_SSH_USER }}
-          SSH_PRIVATE_KEY: ${{ secrets.AMAL_SSH_PRIVATE_KEY }}
+          SSH_PRIVATE_KEY_B64: ${{ secrets.AMAL_SSH_PRIVATE_KEY_B64 }}
           SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
           PROJECT_PATH: ${{ secrets.AMAL_PROJECT_PATH }}
         run: |
           set -e
           mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/amal_github_actions
+          printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d > ~/.ssh/amal_github_actions
           chmod 600 ~/.ssh/amal_github_actions
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
           ssh -i ~/.ssh/amal_github_actions -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; git pull origin main; php artisan optimize:clear"
