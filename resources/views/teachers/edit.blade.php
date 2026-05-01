@@ -5,6 +5,14 @@
 @section('content')
 <div class="card">
     <h3>تعديل بيانات المعلمة</h3>
+    <p class="muted">
+        حالة الرقم السري:
+        @if(blank($teacher->password))
+            لم يتم تعيينه بعد.
+        @else
+            تم تعيينه.
+        @endif
+    </p>
 
     <form method="POST" action="{{ route('teachers.update', $teacher) }}">
         @csrf
@@ -21,7 +29,7 @@
         </label>
 
         <label>
-            كلمة مرور جديدة - 4 خانات
+            رقم سري جديد - 4 خانات
             <input type="text" name="password" placeholder="اتركيه فارغًا إذا لا تريدين تغييرها" minlength="4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}">
         </label>
 
