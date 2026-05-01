@@ -11,16 +11,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.AMAL_SSH_HOST }}
-          username: ${{ secrets.AMAL_SSH_USER }}
-          key: ${{ secrets.AMAL_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.AMAL_SSH_PORT }}
-          script_stop: true
-          script: |
-            set -e
-            cd "${{ secrets.AMAL_PROJECT_PATH }}"
-            git pull origin main
-            php artisan optimize:clear
+      - name: Deploy over native SSH
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_USER: ${{ secrets.AMAL_SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.AMAL_SSH_PRIVATE_KEY }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+          PROJECT_PATH: ${{ secrets.AMAL_PROJECT_PATH }}
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/amal_github_actions
+          chmod 600 ~/.ssh/amal_github_actions
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/amal_github_actions -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; git pull origin main; php artisan optimize:clear"
