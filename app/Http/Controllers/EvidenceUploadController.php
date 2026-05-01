@@ -1,0 +1,69 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\EvidenceItem;
+use App\Models\EvidenceUpload;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+
+class EvidenceUploadController extends Controller
+{
+    public function store(Request $request, EvidenceItem $evidence)
+    {
+        $evidence = EvidenceItem::where('school_id', Auth::user()->school_id)->findOrFail($evidence->id);
+
+        $data = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string'],
+            'file' => ['required', 'file', 'max:20480', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,ppt,pptx'],
+        ]);
+
+        $path = $request->file('file')->store(
+            'evidence/' . Auth::user()->school_id . '/' . $evidence->id,
+            'public'
+        );
+
+        EvidenceUpload::create([
+            'school_id' => Auth::user()->school_id,
+            'evidence_item_id' => $evidence->id,
+            'uploaded_by' => Auth::id(),
+            'title' => $data['title'] ?? $request->file('file')->getClientOriginalName(),
+            'notes' => $data['notes'] ?? null,
+            'file_path' => $path,
+            'file_type' => $request->file('file')->getClientMimeType(),
+        ]);
+
+        return redirect()->route('evidence.show', $evidence)->with('success', 'تم رفع الملف بنجاح');
+    }
+
+    public function download(EvidenceUpload $upload)
+    {
+        $user = Auth::user();
+
+        abort_unless($upload->school_id === $user->school_id, 404);
+
+        if ($user->isTeacher()) {
+            abort_unless($upload->uploaded_by === $user->id, 403);
+        }
+
+        return Storage::disk('public')->download($upload->file_path);
+    }
+
+    public function destroy(EvidenceUpload $upload)
+    {
+        $user = Auth::user();
+
+        abort_unless($upload->school_id === $user->school_id, 404);
+
+        if ($user->isTeacher()) {
+            abort_unless($upload->uploaded_by === $user->id, 403);
+        }
+
+        Storage::disk('public')->delete($upload->file_path);
+        $upload->delete();
+
+        return back()->with('success', 'تم حذف الملف');
+    }
+}
