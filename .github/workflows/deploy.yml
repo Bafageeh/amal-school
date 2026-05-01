@@ -11,17 +11,54 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy over native SSH
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare SSH key
         env:
           SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
-          SSH_USER: ${{ secrets.AMAL_SSH_USER }}
           SSH_PRIVATE_KEY_B64: ${{ secrets.AMAL_SSH_PRIVATE_KEY_B64 }}
           SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
-          PROJECT_PATH: ${{ secrets.AMAL_PROJECT_PATH }}
         run: |
           set -e
+          test -n "$SSH_HOST"
+          test -n "$SSH_PRIVATE_KEY_B64"
+          test -n "$SSH_PORT"
           mkdir -p ~/.ssh
           printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d > ~/.ssh/amal_github_actions
           chmod 600 ~/.ssh/amal_github_actions
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/amal_github_actions -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; git pull origin main; php artisan optimize:clear"
+
+      - name: Upload files to server
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_USER: ${{ secrets.AMAL_SSH_USER }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+          PROJECT_PATH: ${{ secrets.AMAL_PROJECT_PATH }}
+        run: |
+          set -e
+          test -n "$SSH_HOST"
+          test -n "$SSH_USER"
+          test -n "$SSH_PORT"
+          test -n "$PROJECT_PATH"
+          ssh -i ~/.ssh/amal_github_actions -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH'"
+          rsync -az --delete \
+            --exclude='.git/' \
+            --exclude='.github/deploy-trigger.txt' \
+            --exclude='.env' \
+            --exclude='vendor/' \
+            --exclude='node_modules/' \
+            --exclude='storage/' \
+            --exclude='bootstrap/cache/*.php' \
+            -e "ssh -i ~/.ssh/amal_github_actions -p $SSH_PORT" \
+            ./ "$SSH_USER@$SSH_HOST:$PROJECT_PATH/"
+
+      - name: Run Laravel commands
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_USER: ${{ secrets.AMAL_SSH_USER }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+          PROJECT_PATH: ${{ secrets.AMAL_PROJECT_PATH }}
+        run: |
+          set -e
+          ssh -i ~/.ssh/amal_github_actions -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; php artisan optimize:clear"
