@@ -4,19 +4,19 @@
 <div style="max-width:460px;margin:70px auto;">
     <div class="card">
         <h2 style="margin-top:0;">تسجيل الدخول</h2>
-        <p class="muted">ادخلي البريد الإلكتروني وكلمة المرور</p>
+        <p class="muted">أدخلي اسم المستخدم وكلمة المرور</p>
 
         <form method="POST" action="{{ route('login.post') }}">
             @csrf
 
             <label>
-                البريد الإلكتروني
-                <input type="email" name="email" value="{{ old('email') }}" required autofocus>
+                اسم المستخدم
+                <input type="text" name="username" value="{{ old('username') }}" required autofocus autocomplete="username">
             </label>
 
             <label>
                 كلمة المرور
-                <input type="password" name="password" required>
+                <input type="password" name="password" required autocomplete="current-password">
             </label>
 
             <label style="font-weight:normal;">
