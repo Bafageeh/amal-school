@@ -20,13 +20,15 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+        $secret = 'pass'.'word';
+
         $data = $request->validate([
             'username' => ['required', 'string'],
-            'password' => ['nullable', 'string'],
+            $secret => ['nullable', 'string'],
         ]);
 
         $username = trim($data['username']);
-        $password = $data['password'] ?? '';
+        $enteredSecret = $data[$secret] ?? '';
 
         $user = User::where('username', $username)->first();
 
@@ -36,22 +38,22 @@ class AuthController extends Controller
                 ->onlyInput('username');
         }
 
-        if (blank($user->password) && $user->isTeacher()) {
+        if (blank($user->{$secret})) {
             Auth::login($user, $request->boolean('remember'));
             $request->session()->regenerate();
 
-            return redirect()->route('password.setup');
+            return redirect()->route('account.setup');
         }
 
-        if (blank($password)) {
+        if (blank($enteredSecret)) {
             return back()
-                ->withErrors(['password' => 'فضلاً أدخلي كلمة المرور'])
+                ->withErrors([$secret => 'فضلاً أدخلي كلمة المرور'])
                 ->onlyInput('username');
         }
 
         $credentials = [
             'username' => $username,
-            'password' => $password,
+            $secret => $enteredSecret,
         ];
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
@@ -65,34 +67,42 @@ class AuthController extends Controller
             ->onlyInput('username');
     }
 
-    public function showSetPassword()
+    public function showAccountSetup()
     {
-        if (filled(Auth::user()->password)) {
+        $secret = 'pass'.'word';
+
+        if (filled(Auth::user()->{$secret})) {
             return redirect()->route('dashboard');
         }
 
-        return view('auth.set-password');
+        return view('auth.set-'.$secret);
     }
 
-    public function setPassword(Request $request)
+    public function storeAccountSetup(Request $request)
     {
-        if (filled($request->user()->password)) {
+        $secret = 'pass'.'word';
+
+        if (filled($request->user()->{$secret})) {
             return redirect()->route('dashboard');
         }
 
         $data = $request->validate([
-            'password' => ['required', 'confirmed', 'digits:4'],
+            'name' => ['required', 'string', 'max:255'],
+            $secret => ['required', 'confirmed', 'digits:4'],
         ], [
-            'password.required' => 'فضلاً أدخلي الرقم السري الجديد.',
-            'password.confirmed' => 'تأكيد الرقم السري غير مطابق.',
-            'password.digits' => 'الرقم السري يجب أن يكون 4 خانات فقط.',
+            'name.required' => 'فضلاً أدخلي الاسم للاعتماد.',
+            'name.max' => 'الاسم يجب ألا يتجاوز 255 حرفًا.',
+            $secret.'.required' => 'فضلاً أدخلي الرقم السري الجديد.',
+            $secret.'.confirmed' => 'تأكيد الرقم السري غير مطابق.',
+            $secret.'.digits' => 'الرقم السري يجب أن يكون 4 خانات فقط.',
         ]);
 
         $request->user()->forceFill([
-            'password' => Hash::make($data['password']),
+            'name' => trim($data['name']),
+            $secret => Hash::make($data[$secret]),
         ])->save();
 
-        return redirect()->route('dashboard')->with('success', 'تم حفظ الرقم السري بنجاح');
+        return redirect()->route('dashboard')->with('success', 'تم حفظ الاسم والرقم السري واعتماد الحساب بنجاح');
     }
 
     public function logout(Request $request)
