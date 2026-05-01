@@ -17,15 +17,29 @@ jobs:
       - name: Prepare SSH key
         env:
           SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_PRIVATE_KEY: ${{ secrets.AMAL_SSH_PRIVATE_KEY }}
           SSH_PRIVATE_KEY_B64: ${{ secrets.AMAL_SSH_PRIVATE_KEY_B64 }}
           SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
         run: |
           set -e
-          test -n "$SSH_HOST"
-          test -n "$SSH_PRIVATE_KEY_B64"
-          test -n "$SSH_PORT"
+          SSH_PORT="${SSH_PORT:-22}"
+
+          if [ -z "$SSH_HOST" ]; then
+            echo "::error::Missing GitHub secret AMAL_SSH_HOST"
+            exit 1
+          fi
+
           mkdir -p ~/.ssh
-          printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d > ~/.ssh/amal_github_actions
+
+          if [ -n "$SSH_PRIVATE_KEY" ]; then
+            printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/amal_github_actions
+          elif [ -n "$SSH_PRIVATE_KEY_B64" ]; then
+            printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d > ~/.ssh/amal_github_actions
+          else
+            echo "::error::Missing GitHub secret AMAL_SSH_PRIVATE_KEY or AMAL_SSH_PRIVATE_KEY_B64"
+            exit 1
+          fi
+
           chmod 600 ~/.ssh/amal_github_actions
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
 
@@ -37,10 +51,14 @@ jobs:
           PROJECT_PATH: /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api
         run: |
           set -e
-          test -n "$SSH_HOST"
-          test -n "$SSH_USER"
-          test -n "$SSH_PORT"
-          test -n "$PROJECT_PATH"
+          SSH_PORT="${SSH_PORT:-22}"
+          SSH_USER="${SSH_USER:-pmsa}"
+
+          if [ -z "$SSH_HOST" ]; then
+            echo "::error::Missing GitHub secret AMAL_SSH_HOST"
+            exit 1
+          fi
+
           ssh -i ~/.ssh/amal_github_actions -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH'"
           rsync -az \
             --delete \
@@ -62,4 +80,7 @@ jobs:
           PROJECT_PATH: /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api
         run: |
           set -e
+          SSH_PORT="${SSH_PORT:-22}"
+          SSH_USER="${SSH_USER:-pmsa}"
+
           ssh -i ~/.ssh/amal_github_actions -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; pwd; php -v; mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; composer install --no-dev --optimize-autoloader --no-interaction; php artisan migrate --force; CACHE_STORE=file php -d display_errors=1 artisan optimize:clear"
