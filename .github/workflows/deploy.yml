@@ -61,4 +61,4 @@ jobs:
           PROJECT_PATH: ${{ secrets.AMAL_PROJECT_PATH }}
         run: |
           set -e
-          ssh -i ~/.ssh/amal_github_actions -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; php artisan optimize:clear"
+          ssh -i ~/.ssh/amal_github_actions -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; pwd; ls -la; php -v; mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; php -d display_errors=1 artisan optimize:clear"
