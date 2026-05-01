@@ -15,6 +15,11 @@ class TeacherController extends Controller
         abort_unless(Auth::user()->isPrincipal(), 403);
     }
 
+    private function teacherEmailFromUsername(string $username): string
+    {
+        return $username . '@teachers.local';
+    }
+
     public function index()
     {
         $this->principalOnly();
@@ -33,14 +38,18 @@ class TeacherController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:6'],
+            'username' => ['required', 'string', 'max:255', 'alpha_dash', 'unique:users,username'],
+            'password' => ['required', 'digits:4'],
+        ], [
+            'username.alpha_dash' => 'اسم المستخدم يسمح بالحروف والأرقام والشرطة والشرطة السفلية فقط.',
+            'password.digits' => 'كلمة مرور المعلمة يجب أن تكون 4 خانات فقط.',
         ]);
 
         User::create([
             'school_id' => Auth::user()->school_id,
             'name' => $data['name'],
-            'email' => $data['email'],
+            'username' => $data['username'],
+            'email' => $this->teacherEmailFromUsername($data['username']),
             'password' => Hash::make($data['password']),
             'role' => 'teacher',
         ]);
@@ -65,17 +74,22 @@ class TeacherController extends Controller
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => [
+            'username' => [
                 'required',
-                'email',
+                'string',
                 'max:255',
-                Rule::unique('users', 'email')->ignore($teacher->id),
+                'alpha_dash',
+                Rule::unique('users', 'username')->ignore($teacher->id),
             ],
-            'password' => ['nullable', 'string', 'min:6'],
+            'password' => ['nullable', 'digits:4'],
+        ], [
+            'username.alpha_dash' => 'اسم المستخدم يسمح بالحروف والأرقام والشرطة والشرطة السفلية فقط.',
+            'password.digits' => 'كلمة مرور المعلمة يجب أن تكون 4 خانات فقط.',
         ]);
 
         $teacher->name = $data['name'];
-        $teacher->email = $data['email'];
+        $teacher->username = $data['username'];
+        $teacher->email = $this->teacherEmailFromUsername($data['username']);
 
         if (!empty($data['password'])) {
             $teacher->password = Hash::make($data['password']);
