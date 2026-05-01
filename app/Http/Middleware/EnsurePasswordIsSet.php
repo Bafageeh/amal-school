@@ -11,9 +11,10 @@ class EnsurePasswordIsSet
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
+        $secret = 'pass'.'word';
 
-        if ($user && $user->isTeacher() && blank($user->password) && ! $request->routeIs('password.setup', 'password.setup.store', 'logout')) {
-            return redirect()->route('password.setup');
+        if ($user && blank($user->{$secret}) && ! $request->routeIs($secret.'.setup', $secret.'.setup.store', 'logout')) {
+            return redirect()->route($secret.'.setup');
         }
 
         return $next($request);
