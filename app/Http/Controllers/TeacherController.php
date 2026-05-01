@@ -26,8 +26,6 @@ class TeacherController extends Controller
 
         $teachers = User::where('school_id', Auth::user()->school_id)
             ->where('role', 'teacher')
-            ->orderByRaw("CAST(REGEXP_SUBSTR(username, '[0-9]+$') AS UNSIGNED) IS NULL")
-            ->orderByRaw("CAST(REGEXP_SUBSTR(username, '[0-9]+$') AS UNSIGNED)")
             ->orderBy('username')
             ->get();
 
