@@ -1,1 +1,1 @@
-Deploy trigger
+Deploy trigger: 2026-05-02 teacher first-login accounts and auto deploy
