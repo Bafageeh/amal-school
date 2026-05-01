@@ -5,6 +5,7 @@
 @section('content')
 <div class="card">
     <h3>إضافة معلمة</h3>
+    <p class="muted">يمكن ترك الرقم السري فارغًا. عند أول دخول للمعلمة بدون رقم سري سيطلب منها النظام تعيين رقم سري جديد من 4 خانات.</p>
 
     <form method="POST" action="{{ route('teachers.store') }}">
         @csrf
@@ -21,8 +22,8 @@
             </label>
 
             <label>
-                كلمة المرور - 4 خانات
-                <input type="text" name="password" required minlength="4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}">
+                الرقم السري - اختياري
+                <input type="text" name="password" minlength="4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" placeholder="اتركيه فارغًا لأول دخول">
             </label>
         </div>
 
@@ -39,6 +40,7 @@
                 <tr>
                     <th>الاسم</th>
                     <th>اسم المستخدم</th>
+                    <th>حالة الرقم السري</th>
                     <th>تاريخ الإضافة</th>
                     <th></th>
                 </tr>
@@ -48,6 +50,13 @@
                     <tr>
                         <td>{{ $teacher->name }}</td>
                         <td>{{ $teacher->username }}</td>
+                        <td>
+                            @if(blank($teacher->password))
+                                <span class="muted">لم يتم تعيينه</span>
+                            @else
+                                <span style="color:#166534;font-weight:bold;">تم تعيينه</span>
+                            @endif
+                        </td>
                         <td>{{ $teacher->created_at->format('Y-m-d') }}</td>
                         <td>
                             <div class="actions">
