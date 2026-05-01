@@ -26,7 +26,9 @@ class TeacherController extends Controller
 
         $teachers = User::where('school_id', Auth::user()->school_id)
             ->where('role', 'teacher')
-            ->latest()
+            ->orderByRaw("CAST(REGEXP_SUBSTR(username, '[0-9]+$') AS UNSIGNED) IS NULL")
+            ->orderByRaw("CAST(REGEXP_SUBSTR(username, '[0-9]+$') AS UNSIGNED)")
+            ->orderBy('username')
             ->get();
 
         return view('teachers.index', compact('teachers'));
@@ -39,7 +41,7 @@ class TeacherController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'alpha_dash', 'unique:users,username'],
-            'password' => ['required', 'digits:4'],
+            'password' => ['nullable', 'digits:4'],
         ], [
             'username.alpha_dash' => 'اسم المستخدم يسمح بالحروف والأرقام والشرطة والشرطة السفلية فقط.',
             'password.digits' => 'كلمة مرور المعلمة يجب أن تكون 4 خانات فقط.',
@@ -50,7 +52,7 @@ class TeacherController extends Controller
             'name' => $data['name'],
             'username' => $data['username'],
             'email' => $this->teacherEmailFromUsername($data['username']),
-            'password' => Hash::make($data['password']),
+            'password' => filled($data['password'] ?? null) ? Hash::make($data['password']) : null,
             'role' => 'teacher',
         ]);
 
@@ -91,7 +93,7 @@ class TeacherController extends Controller
         $teacher->username = $data['username'];
         $teacher->email = $this->teacherEmailFromUsername($data['username']);
 
-        if (!empty($data['password'])) {
+        if (filled($data['password'] ?? null)) {
             $teacher->password = Hash::make($data['password']);
         }
 
