@@ -4,7 +4,7 @@
 <div style="max-width:460px;margin:70px auto;">
     <div class="card">
         <h2 style="margin-top:0;">تسجيل الدخول</h2>
-        <p class="muted">أدخلي اسم المستخدم وكلمة المرور</p>
+        <p class="muted">أدخلي اسم المستخدم. إذا كان الحساب جديدًا بدون رقم سري فاتركي خانة الرقم السري فارغة.</p>
 
         <form method="POST" action="{{ route('login.post') }}">
             @csrf
@@ -15,8 +15,8 @@
             </label>
 
             <label>
-                كلمة المرور
-                <input type="password" name="password" required autocomplete="current-password">
+                الرقم السري
+                <input type="password" name="password" autocomplete="current-password" inputmode="numeric" maxlength="4">
             </label>
 
             <label style="font-weight:normal;">
