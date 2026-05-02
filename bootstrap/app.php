@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'password.set' => EnsurePasswordIsSet::class,
             'mobile.api.auth' => MobileApiAuth::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'mobile-api/v1/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
