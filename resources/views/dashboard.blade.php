@@ -14,6 +14,12 @@
             'evidenceCount' => $evidenceCount,
             'uploadsCount' => $uploadsCount,
         ],
+        'urls' => [
+            'dashboard' => route('dashboard'),
+            'evidence' => route('evidence.index'),
+            'teacherEvidence' => auth()->user()->isPrincipal() ? route('teacher-evidence.index') : null,
+            'teachers' => auth()->user()->isPrincipal() ? route('teachers.index') : null,
+        ],
         'latestUploads' => $latestUploads->map(fn ($upload) => [
             'id' => $upload->id,
             'title' => $upload->title,
