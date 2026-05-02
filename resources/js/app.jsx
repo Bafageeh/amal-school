@@ -1,5 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+
+const ROUTES = {
+    dashboard: '/dashboard',
+    evidence: '/evidence',
+    settings: '/settings',
+};
+
+async function apiGet(url) {
+    const response = await fetch(url, {
+        headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+    }
+
+    return response.json();
+}
 
 function StatCard({ label, value, icon, tone = 'blue' }) {
     return (
@@ -36,8 +58,8 @@ function UploadCard({ upload, isPrincipal }) {
                 <div className="upload-file-icon">📎</div>
                 <div>
                     <strong>{upload.title}</strong>
-                    <div className="muted">{upload.evidence_title || 'بدون معيار'}</div>
-                    {isPrincipal && <div className="teacher-chip">{upload.teacher_name || 'معلمة غير محددة'}</div>}
+                    <div className="muted">{upload.evidence?.title || 'بدون معيار'}</div>
+                    {isPrincipal && <div className="teacher-chip">{upload.uploader?.name || 'معلمة غير محددة'}</div>}
                 </div>
             </div>
             <div className="upload-card-footer">
@@ -68,8 +90,26 @@ function LatestUploads({ uploads, isPrincipal }) {
     );
 }
 
-function DashboardApp({ data }) {
-    const { user, stats, latestUploads, urls } = data;
+function LoadingCard() {
+    return (
+        <div className="card empty-state">
+            <div className="empty-icon">⏳</div>
+            <strong>جاري تحميل البيانات</strong>
+            <span>يتم الآن جلب بيانات الشاشة من API.</span>
+        </div>
+    );
+}
+
+function ErrorCard({ message }) {
+    return (
+        <div className="alert error">
+            <strong>تعذر تحميل بيانات React من API.</strong>
+            <div>{message}</div>
+        </div>
+    );
+}
+
+function DashboardContent({ user, stats, latestUploads }) {
     const isPrincipal = user.role === 'principal';
 
     const actions = [
@@ -77,14 +117,14 @@ function DashboardApp({ data }) {
             title: 'معايير التقييم',
             description: 'عرض ورفع الملفات على المعايير',
             icon: '✅',
-            href: urls.evidence,
+            href: ROUTES.evidence,
         },
-        ...(isPrincipal && urls.settings ? [
+        ...(isPrincipal ? [
             {
                 title: 'الإعدادات',
                 description: 'إدارة المعلمات ومتابعة ملفاتهن',
                 icon: '⚙️',
-                href: urls.settings,
+                href: ROUTES.settings,
             },
         ] : []),
     ];
@@ -93,7 +133,7 @@ function DashboardApp({ data }) {
         <div className="react-dashboard">
             <section className="hero-card">
                 <div>
-                    <span className="hero-kicker">تطبيق Amal</span>
+                    <span className="hero-kicker">React + API</span>
                     <h1>مرحبًا {user.name}</h1>
                     <p>{isPrincipal ? 'لوحة متابعة ملفات ومعايير تقييم المعلمات.' : 'لوحة رفع ومتابعة ملفات معايير التقييم الخاصة بك.'}</p>
                 </div>
@@ -101,16 +141,16 @@ function DashboardApp({ data }) {
             </section>
 
             <div className="app-stats-grid">
-                {isPrincipal && <StatCard label="المعلمات" value={stats.teachersCount} icon="👩‍🏫" tone="purple" />}
-                <StatCard label="معايير التقييم" value={stats.evidenceCount} icon="✅" tone="blue" />
-                <StatCard label={isPrincipal ? 'إجمالي الملفات' : 'ملفاتي'} value={stats.uploadsCount} icon="📁" tone="green" />
+                {isPrincipal && <StatCard label="المعلمات" value={stats.teachers_count} icon="👩‍🏫" tone="purple" />}
+                <StatCard label="معايير التقييم" value={stats.evidence_count} icon="✅" tone="blue" />
+                <StatCard label={isPrincipal ? 'إجمالي الملفات' : 'ملفاتي'} value={stats.uploads_count} icon="📁" tone="green" />
             </div>
 
             <section className="card app-section-card">
                 <div className="section-heading">
                     <div>
                         <h3>اختصارات سريعة</h3>
-                        <p className="muted">الوصول لأهم شاشات التطبيق بلمسة واحدة.</p>
+                        <p className="muted">هذه الشاشة تقرأ بياناتها الآن من Laravel API.</p>
                     </div>
                 </div>
                 <QuickActions actions={actions} />
@@ -126,6 +166,53 @@ function DashboardApp({ data }) {
                 <LatestUploads uploads={latestUploads} isPrincipal={isPrincipal} />
             </section>
         </div>
+    );
+}
+
+function DashboardApp() {
+    const [state, setState] = useState({ loading: true, error: null, user: null, dashboard: null });
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadDashboard() {
+            try {
+                const [me, dashboard] = await Promise.all([
+                    apiGet('/api/v1/me'),
+                    apiGet('/api/v1/dashboard'),
+                ]);
+
+                if (!cancelled) {
+                    setState({ loading: false, error: null, user: me.user, dashboard });
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    setState({ loading: false, error: error.message, user: null, dashboard: null });
+                }
+            }
+        }
+
+        loadDashboard();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    if (state.loading) {
+        return <LoadingCard />;
+    }
+
+    if (state.error) {
+        return <ErrorCard message={state.error} />;
+    }
+
+    return (
+        <DashboardContent
+            user={state.user}
+            stats={state.dashboard.stats}
+            latestUploads={state.dashboard.latest_uploads || []}
+        />
     );
 }
 
@@ -288,8 +375,7 @@ function mountReactApps() {
     normalizePrincipalSidebar();
 
     document.querySelectorAll('[data-react-app="dashboard"]').forEach((element) => {
-        const data = JSON.parse(element.dataset.props || '{}');
-        createRoot(element).render(<DashboardApp data={data} />);
+        createRoot(element).render(<DashboardApp />);
     });
 
     mountBottomTabs();
