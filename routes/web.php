@@ -115,6 +115,7 @@ Route::middleware(['auth', 'password.set'])->group(function () {
     Route::get('/teacher-evidence/{teacher}/evidence/{evidence}', [TeacherEvidenceController::class, 'uploads'])->name('teacher-evidence.uploads');
     Route::resource('evidence', EvidenceItemController::class);
     Route::post('/evidence/{evidence}/uploads', [EvidenceUploadController::class, 'store'])->name('evidence.uploads.store');
+    Route::get('/uploads/{upload}/preview', [EvidenceUploadController::class, 'preview'])->name('uploads.preview');
     Route::get('/uploads/{upload}/download', [EvidenceUploadController::class, 'download'])->name('uploads.download');
     Route::delete('/uploads/{upload}', [EvidenceUploadController::class, 'destroy'])->name('uploads.destroy');
 });
