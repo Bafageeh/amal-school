@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AmalApiController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EvidenceItemController;
@@ -55,6 +56,32 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'password.set'])->group(function () {
+    Route::prefix('api/v1')->group(function () {
+        Route::get('/me', [AmalApiController::class, 'me']);
+        Route::get('/dashboard', [AmalApiController::class, 'dashboard']);
+        Route::get('/settings', [AmalApiController::class, 'settings']);
+
+        Route::get('/evidence', [AmalApiController::class, 'evidenceIndex']);
+        Route::post('/evidence', [AmalApiController::class, 'evidenceStore']);
+        Route::get('/evidence/{evidence}', [AmalApiController::class, 'evidenceShow']);
+        Route::put('/evidence/{evidence}', [AmalApiController::class, 'evidenceUpdate']);
+        Route::patch('/evidence/{evidence}', [AmalApiController::class, 'evidenceUpdate']);
+        Route::delete('/evidence/{evidence}', [AmalApiController::class, 'evidenceDestroy']);
+        Route::post('/evidence/{evidence}/uploads', [AmalApiController::class, 'uploadEvidence']);
+
+        Route::delete('/uploads/{upload}', [AmalApiController::class, 'uploadDestroy']);
+
+        Route::get('/teachers', [AmalApiController::class, 'teachersIndex']);
+        Route::post('/teachers', [AmalApiController::class, 'teacherStore']);
+        Route::put('/teachers/{teacher}', [AmalApiController::class, 'teacherUpdate']);
+        Route::patch('/teachers/{teacher}', [AmalApiController::class, 'teacherUpdate']);
+        Route::delete('/teachers/{teacher}', [AmalApiController::class, 'teacherDestroy']);
+
+        Route::get('/teacher-evidence', [AmalApiController::class, 'teacherEvidenceIndex']);
+        Route::get('/teacher-evidence/{teacher}', [AmalApiController::class, 'teacherCriteria']);
+        Route::get('/teacher-evidence/{teacher}/evidence/{evidence}', [AmalApiController::class, 'teacherUploads']);
+    });
+
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
 
