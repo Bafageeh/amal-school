@@ -390,3 +390,257 @@
         box-shadow: none !important;
     }
 }
+
+@media (max-width: 980px) {
+    .react-evidence-index {
+        gap: 18px !important;
+        padding-top: 2px !important;
+    }
+
+    .react-evidence-index > .hero-card,
+    .react-evidence-index .section-heading {
+        display: none !important;
+    }
+
+    .react-evidence-index .app-section-card {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .react-evidence-index .uploads-list {
+        display: grid !important;
+        gap: 18px !important;
+        margin: 0 !important;
+    }
+
+    .react-evidence-index .uploads-list > .upload-card {
+        --evidence-accent: #2fac7c;
+        --evidence-soft: #eaf7ec;
+        --evidence-ink: #177a55;
+        --evidence-progress: 82%;
+        --evidence-percent: '82%';
+        position: relative !important;
+        display: block !important;
+        overflow: hidden !important;
+        min-height: 274px !important;
+        padding: 25px 20px 96px !important;
+        border-radius: 30px !important;
+        background: linear-gradient(180deg, #ffffff 0%, #ffffff 72%, #fbfdff 100%) !important;
+        border: 1px solid rgba(226, 232, 240, .92) !important;
+        box-shadow: 0 16px 34px rgba(15, 23, 42, .08) !important;
+        isolation: isolate !important;
+    }
+
+    .react-evidence-index .uploads-list > .upload-card:nth-child(3n + 1) {
+        --evidence-accent: #29a979;
+        --evidence-soft: #eaf7ec;
+        --evidence-ink: #176d52;
+        --evidence-progress: 83%;
+        --evidence-percent: '83%';
+    }
+
+    .react-evidence-index .uploads-list > .upload-card:nth-child(3n + 2) {
+        --evidence-accent: #2563eb;
+        --evidence-soft: #eef4ff;
+        --evidence-ink: #1d4ed8;
+        --evidence-progress: 67%;
+        --evidence-percent: '67%';
+    }
+
+    .react-evidence-index .uploads-list > .upload-card:nth-child(3n) {
+        --evidence-accent: #6d4ecf;
+        --evidence-soft: #f1edff;
+        --evidence-ink: #5b3db8;
+        --evidence-progress: 47%;
+        --evidence-percent: '47%';
+    }
+
+    .react-evidence-index .uploads-list > .upload-card::before {
+        content: var(--evidence-percent);
+        position: absolute;
+        left: 22px;
+        bottom: 71px;
+        z-index: 2;
+        color: #0f172a;
+        font-size: 22px;
+        font-weight: 950;
+        letter-spacing: -.2px;
+    }
+
+    .react-evidence-index .uploads-list > .upload-card::after {
+        content: '';
+        position: absolute;
+        left: 22px;
+        right: 22px;
+        bottom: 58px;
+        z-index: 1;
+        height: 8px;
+        border-radius: 999px;
+        background: #edeae4;
+    }
+
+    .react-evidence-index .upload-card-main {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: flex-start !important;
+        gap: 16px !important;
+        direction: ltr !important;
+    }
+
+    .react-evidence-index .upload-file-icon {
+        width: 72px !important;
+        height: 72px !important;
+        min-width: 72px !important;
+        border-radius: 24px !important;
+        background: var(--evidence-soft) !important;
+        color: var(--evidence-ink) !important;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .75) !important;
+        font-size: 34px !important;
+    }
+
+    .react-evidence-index .upload-card-main > div:last-child {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        gap: 9px 10px !important;
+        direction: rtl !important;
+        text-align: right !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .react-evidence-index .upload-card strong {
+        width: 100% !important;
+        color: #0f172a !important;
+        font-size: 20px !important;
+        line-height: 1.45 !important;
+        font-weight: 950 !important;
+        letter-spacing: -.35px !important;
+        text-align: right !important;
+    }
+
+    .react-evidence-index .upload-card .muted {
+        width: 100% !important;
+        margin-top: 0 !important;
+        color: #64748b !important;
+        font-size: 14px !important;
+        line-height: 1.6 !important;
+        text-align: right !important;
+    }
+
+    .react-evidence-index .teacher-chip {
+        order: 3 !important;
+        margin-top: 2px !important;
+        align-self: auto !important;
+        min-height: 38px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 7px !important;
+        padding: 8px 15px !important;
+        border-radius: 999px !important;
+        background: #eef2ff !important;
+        color: #3730a3 !important;
+        font-size: 13px !important;
+        font-weight: 950 !important;
+        box-shadow: none !important;
+    }
+
+    .react-evidence-index .teacher-chip::before {
+        content: '📄';
+        font-size: 16px;
+        line-height: 1;
+    }
+
+    .react-evidence-index .upload-card-main > div:last-child::after {
+        content: 'نشط';
+        order: 4;
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 17px;
+        border-radius: 999px;
+        background: var(--evidence-soft);
+        color: var(--evidence-ink);
+        font-size: 13px;
+        font-weight: 950;
+    }
+
+    .react-evidence-index .upload-card-footer {
+        position: static !important;
+        display: block !important;
+        min-height: 136px !important;
+        margin-top: 20px !important;
+        padding-top: 16px !important;
+        border-top: 1px solid #eef2f7 !important;
+    }
+
+    .react-evidence-index .upload-card-footer::before {
+        content: '';
+        position: absolute;
+        left: 22px;
+        bottom: 58px;
+        z-index: 2;
+        width: var(--evidence-progress);
+        height: 8px;
+        border-radius: 999px;
+        background: var(--evidence-accent);
+    }
+
+    .react-evidence-index .upload-card-footer span {
+        position: absolute !important;
+        right: 22px;
+        bottom: 88px;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 7px !important;
+        color: #64748b !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        direction: ltr !important;
+    }
+
+    .react-evidence-index .upload-card-footer span::after {
+        content: '◷';
+        color: #94a3b8;
+        font-size: 17px;
+        line-height: 1;
+    }
+
+    .react-evidence-index .upload-card-footer .btn {
+        position: absolute !important;
+        left: 22px !important;
+        right: 22px !important;
+        bottom: 18px !important;
+        width: auto !important;
+        min-height: 48px !important;
+        border-radius: 17px !important;
+        background: #ffffff !important;
+        color: var(--evidence-ink) !important;
+        border: 1.5px solid var(--evidence-accent) !important;
+        box-shadow: none !important;
+        font-size: 16px !important;
+        font-weight: 950 !important;
+    }
+
+    .react-evidence-index .upload-card-footer .btn::after {
+        content: '↗';
+        margin-right: 9px;
+        font-size: 18px;
+        line-height: 1;
+    }
+
+    .react-evidence-index .empty-state {
+        min-height: 210px !important;
+        border-radius: 30px !important;
+        background: #ffffff !important;
+        border: 1px dashed #cbd5e1 !important;
+        box-shadow: 0 16px 34px rgba(15, 23, 42, .06) !important;
+    }
+}
