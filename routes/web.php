@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EvidenceItemController;
 use App\Http\Controllers\EvidenceUploadController;
 use App\Http\Controllers\TeacherController;
+use App\Http\Controllers\TeacherEvidenceController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -26,6 +27,10 @@ Route::middleware(['auth', 'password.set'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('teachers', TeacherController::class)->except(['show', 'create']);
+
+    Route::get('/teacher-evidence', [TeacherEvidenceController::class, 'index'])->name('teacher-evidence.index');
+    Route::get('/teacher-evidence/{teacher}', [TeacherEvidenceController::class, 'teacher'])->name('teacher-evidence.teacher');
+    Route::get('/teacher-evidence/{teacher}/evidence/{evidence}', [TeacherEvidenceController::class, 'uploads'])->name('teacher-evidence.uploads');
 
     Route::resource('evidence', EvidenceItemController::class);
     Route::post('/evidence/{evidence}/uploads', [EvidenceUploadController::class, 'store'])->name('evidence.uploads.store');
