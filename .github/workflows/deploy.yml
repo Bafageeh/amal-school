@@ -75,25 +75,49 @@ jobs:
 
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> "$HOME/.ssh/known_hosts"
 
-      - name: Upload files to server
+      - name: Deploy and run Laravel commands
         env:
           SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
           SSH_USER: ${{ secrets.AMAL_SSH_USER }}
           SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
-          PROJECT_PATH: /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api
         run: |
           set -e
           SSH_PORT="${SSH_PORT:-22}"
-          SSH_USER="${SSH_USER:-pmsa}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
-          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -i $KEY_FILE -p $SSH_PORT"
+          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
 
           if [ -z "$SSH_HOST" ]; then
             echo "::error::Missing GitHub secret AMAL_SSH_HOST"
             exit 1
           fi
 
-          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH'"
+          DEPLOY_USER=""
+          for candidate in ${SSH_USER:-} pmsa root; do
+            if [ -z "$candidate" ]; then
+              continue
+            fi
+
+            echo "Trying SSH user: $candidate"
+            if ssh $SSH_OPTS "$candidate@$SSH_HOST" "echo connected" >/dev/null 2>&1; then
+              DEPLOY_USER="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$DEPLOY_USER" ]; then
+            echo "::error::SSH authentication failed for configured user, pmsa, and root. Check AMAL_SSH_PRIVATE_KEY and that its public key exists in ~/.ssh/authorized_keys for the server user."
+            exit 1
+          fi
+
+          echo "Using SSH user: $DEPLOY_USER"
+
+          PRIMARY_PATH="/mnt/home-storage/home/pmsa/apps/amal-school-api"
+          FALLBACK_PATH="/mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api"
+          PROJECT_PATH=$(ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "if [ -d '$PRIMARY_PATH' ]; then echo '$PRIMARY_PATH'; else echo '$FALLBACK_PATH'; fi")
+
+          echo "Deploying to: $PROJECT_PATH"
+
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH'"
           rsync -az \
             --delete \
             --exclude='.git/' \
@@ -104,19 +128,6 @@ jobs:
             --exclude='storage/' \
             --exclude='bootstrap/cache/*.php' \
             -e "ssh $SSH_OPTS" \
-            ./ "$SSH_USER@$SSH_HOST:$PROJECT_PATH/"
+            ./ "$DEPLOY_USER@$SSH_HOST:$PROJECT_PATH/"
 
-      - name: Run Laravel commands
-        env:
-          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
-          SSH_USER: ${{ secrets.AMAL_SSH_USER }}
-          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
-          PROJECT_PATH: /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api
-        run: |
-          set -e
-          SSH_PORT="${SSH_PORT:-22}"
-          SSH_USER="${SSH_USER:-pmsa}"
-          KEY_FILE="$HOME/.ssh/amal_github_actions"
-          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -i $KEY_FILE -p $SSH_PORT"
-
-          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; pwd; php -v; mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; composer install --no-dev --optimize-autoloader --no-interaction; php artisan migrate --force; php artisan db:seed --class=TeacherAccountsSeeder --force; CACHE_STORE=file php -d display_errors=1 artisan optimize:clear"
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; pwd; php -v; mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; composer install --no-dev --optimize-autoloader --no-interaction; php artisan migrate --force; php artisan db:seed --class=TeacherAccountsSeeder --force; CACHE_STORE=file php -d display_errors=1 artisan optimize:clear"
