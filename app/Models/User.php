@@ -17,11 +17,14 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'mobile_api_token_hash',
+        'mobile_api_token_created_at',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'mobile_api_token_hash',
     ];
 
     protected function casts(): array
@@ -29,6 +32,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'mobile_api_token_created_at' => 'datetime',
         ];
     }
 
