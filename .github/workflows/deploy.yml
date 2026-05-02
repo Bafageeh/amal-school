@@ -110,7 +110,6 @@ jobs:
             PROJECT_PATH=""
           fi
 
-          # /mnt/home-storage/... is the real WHM/root path. Prefer root for it because pmsa cannot create /mnt.
           if [[ "${PROJECT_PATH:-}" == /mnt/* ]]; then
             CANDIDATES="root ${SSH_USER:-} pmsa"
           else
@@ -201,15 +200,177 @@ jobs:
 
           ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "python3 - <<'PY'
 from pathlib import Path
+import re
 p = Path('$PROJECT_PATH/mobile/App.js')
 text = p.read_text()
-old = '''          <Text style={styles.settingsSectionLabel}>التقارير</Text>
+
+components = r'''
+function AdminBackHeader({ title, onBack }) {
+  return (
+    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+      <Text style={styles.pageTitle}>{title}</Text>
+      <TouchableOpacity onPress={onBack} style={styles.headerLogoutBtn} activeOpacity={0.75}>
+        <Ionicons name="arrow-forward-outline" size={20} color={C.primary} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function TeachersManagementScreen({ token, onBack }) {
+  const [loading, setLoading] = useState(true);
+  const [teachers, setTeachers] = useState([]);
+
+  useEffect(() => {
+    async function loadTeachers() {
+      setLoading(true);
+      try {
+        const data = await requestJson('/teachers', { token });
+        setTeachers(data.teachers || []);
+      } catch (error) {
+        Alert.alert('تعذر تحميل المعلمات', error.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadTeachers();
+  }, [token]);
+
+  return (
+    <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false}>
+      <AdminBackHeader title="المعلمات" onBack={onBack} />
+      <Text style={styles.pageSubtitle}>قائمة حسابات المعلمات في المدرسة</Text>
+      {loading ? (
+        <ActivityIndicator color={C.primary} size="large" style={{ marginTop: 30 }} />
+      ) : (
+        <View style={styles.listCard}>
+          {teachers.length === 0 ? (
+            <View style={styles.actionRow}>
+              <View style={styles.actionRowText}><Text style={styles.actionRowTitle}>لا توجد معلمات</Text></View>
+            </View>
+          ) : teachers.map((teacher, idx) => (
+            <View key={teacher.id} style={[styles.actionRow, idx === teachers.length - 1 && { borderBottomWidth: 0 }]}>
+              <View style={[styles.actionRowIcon, { backgroundColor: C.primaryLight }]}>
+                <Ionicons name="person-outline" size={20} color={C.primary} />
+              </View>
+              <View style={styles.actionRowText}>
+                <Text style={styles.actionRowTitle}>{teacher.name}</Text>
+                <Text style={styles.actionRowSub}>اسم المستخدم: {teacher.username || '—'} · الملفات: {teacher.uploads_count ?? 0}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+      <View style={{ height: 28 }} />
+    </ScrollView>
+  );
+}
+
+function TeacherFilesScreen({ token, onBack, onOpenEvidence }) {
+  const [loading, setLoading] = useState(true);
+  const [teachers, setTeachers] = useState([]);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
+  const [criteria, setCriteria] = useState([]);
+  const [criteriaLoading, setCriteriaLoading] = useState(false);
+
+  useEffect(() => {
+    async function loadTeachers() {
+      setLoading(true);
+      try {
+        const data = await requestJson('/teacher-evidence', { token });
+        setTeachers(data.teachers || []);
+      } catch (error) {
+        Alert.alert('تعذر تحميل المعلمات', error.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadTeachers();
+  }, [token]);
+
+  async function openTeacher(teacher) {
+    setSelectedTeacher(teacher);
+    setCriteriaLoading(true);
+    try {
+      const data = await requestJson('/teacher-evidence/' + teacher.id, { token });
+      setCriteria(data.items || []);
+    } catch (error) {
+      Alert.alert('تعذر تحميل ملفات المعلمة', error.message);
+    } finally {
+      setCriteriaLoading(false);
+    }
+  }
+
+  if (selectedTeacher) {
+    return (
+      <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false}>
+        <AdminBackHeader title={selectedTeacher.name} onBack={() => setSelectedTeacher(null)} />
+        <Text style={styles.pageSubtitle}>اختاري معيارًا لعرض الملفات الخاصة بالمعلمة</Text>
+        {criteriaLoading ? (
+          <ActivityIndicator color={C.primary} size="large" style={{ marginTop: 30 }} />
+        ) : (
           <View style={styles.listCard}>
-            <ActionRow icon=\"stats-chart-outline\" title=\"إحصائيات الرفع\" subtitle=\"نسبة اكتمال ملفات كل معلمة\" accent={C.teal} />
-            <ActionRow icon=\"ribbon-outline\" title=\"المعايير المكتملة\" subtitle=\"المعايير التي اكتملت ملفاتها\" accent={C.green} noBorder />
+            {criteria.map((item, idx) => (
+              <TouchableOpacity key={item.id} style={[styles.actionRow, idx === criteria.length - 1 && { borderBottomWidth: 0 }]} activeOpacity={0.8} onPress={() => onOpenEvidence(item)}>
+                <Ionicons name="chevron-back" size={16} color={C.border} />
+                <View style={styles.actionRowText}>
+                  <Text style={styles.actionRowTitle}>{item.title}</Text>
+                  <Text style={styles.actionRowSub}>ملفات هذه المعلمة: {item.teacher_uploads_count ?? 0}</Text>
+                </View>
+                <View style={[styles.actionRowIcon, { backgroundColor: C.primaryLight }]}>
+                  <Ionicons name="folder-open-outline" size={20} color={C.primary} />
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
+        )}
+        <View style={{ height: 28 }} />
+      </ScrollView>
+    );
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false}>
+      <AdminBackHeader title="متابعة ملفات المعلمات" onBack={onBack} />
+      <Text style={styles.pageSubtitle}>اختاري المعلمة ثم المعيار لعرض الملفات</Text>
+      {loading ? (
+        <ActivityIndicator color={C.primary} size="large" style={{ marginTop: 30 }} />
+      ) : (
+        <View style={styles.listCard}>
+          {teachers.map((teacher, idx) => (
+            <TouchableOpacity key={teacher.id} style={[styles.actionRow, idx === teachers.length - 1 && { borderBottomWidth: 0 }]} activeOpacity={0.8} onPress={() => openTeacher(teacher)}>
+              <Ionicons name="chevron-back" size={16} color={C.border} />
+              <View style={styles.actionRowText}>
+                <Text style={styles.actionRowTitle}>{teacher.name}</Text>
+                <Text style={styles.actionRowSub}>عدد الملفات: {teacher.uploads_count ?? 0}</Text>
+              </View>
+              <View style={[styles.actionRowIcon, { backgroundColor: C.goldLight }]}>
+                <Ionicons name="folder-outline" size={20} color={C.gold} />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+      <View style={{ height: 28 }} />
+    </ScrollView>
+  );
+}
 '''
-text = text.replace(old, '')
+
+if 'function TeachersManagementScreen' not in text:
+    text = text.replace('function SettingsScreen({ user, onLogout }) {', components + '\nfunction SettingsScreen({ user, onLogout }) {', 1)
+
+text = text.replace('function SettingsScreen({ user, onLogout }) {', 'function SettingsScreen({ user, onLogout, onOpenTeachers, onOpenTeacherFiles }) {')
+text = text.replace('<ActionRow icon="people-outline" title="المعلمات" subtitle="إضافة وتعديل وحذف حسابات المعلمات" accent={C.primary} />', '<ActionRow icon="people-outline" title="المعلمات" subtitle="إضافة وتعديل وحذف حسابات المعلمات" accent={C.primary} onPress={onOpenTeachers} />')
+text = text.replace('<ActionRow icon="folder-open-outline" title="متابعة ملفات المعلمات" subtitle="استعراض ملفات كل معلمة حسب المعيار" accent={C.gold} noBorder />', '<ActionRow icon="folder-open-outline" title="متابعة ملفات المعلمات" subtitle="استعراض ملفات كل معلمة حسب المعيار" accent={C.gold} onPress={onOpenTeacherFiles} noBorder />')
+text = re.sub(r'\n\s*<Text style=\{styles\.settingsSectionLabel\}>التقارير</Text>\s*<View style=\{styles\.listCard\}>\s*<ActionRow icon="stats-chart-outline" title="إحصائيات الرفع" subtitle="نسبة اكتمال ملفات كل معلمة" accent=\{C\.teal\} />\s*<ActionRow icon="ribbon-outline" title="المعايير المكتملة" subtitle="المعايير التي اكتملت ملفاتها" accent=\{C\.green\} noBorder />\s*</View>', '', text, count=1)
+
+if 'const [settingsSub, setSettingsSub]' not in text:
+    text = text.replace('  const [selectedEvidence, setSelectedEvidence] = useState(null);\n', '  const [selectedEvidence, setSelectedEvidence] = useState(null);\n  const [settingsSub, setSettingsSub] = useState(null);\n', 1)
+
+old_branch = "else if (tab === 'settings') screen = <SettingsScreen user={user} onLogout={onLogout} />;"
+new_branch = "else if (tab === 'settings' && settingsSub === 'teachers') screen = <TeachersManagementScreen token={token} onBack={() => setSettingsSub(null)} />;\n  else if (tab === 'settings' && settingsSub === 'teacherFiles') screen = <TeacherFilesScreen token={token} onBack={() => setSettingsSub(null)} onOpenEvidence={(item) => setSelectedEvidence(item)} />;\n  else if (tab === 'settings') screen = <SettingsScreen user={user} onLogout={onLogout} onOpenTeachers={() => setSettingsSub('teachers')} onOpenTeacherFiles={() => setSettingsSub('teacherFiles')} />;"
+text = text.replace(old_branch, new_branch)
+
 p.write_text(text)
 PY"
 
