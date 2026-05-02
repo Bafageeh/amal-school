@@ -79,18 +79,12 @@ function DashboardApp({ data }) {
             icon: '✅',
             href: urls.evidence,
         },
-        ...(isPrincipal ? [
+        ...(isPrincipal && urls.settings ? [
             {
-                title: 'متابعة المعلمات',
-                description: 'اختيار معلمة ثم معيار ثم الملفات',
-                icon: '👩‍🏫',
-                href: urls.teacherEvidence,
-            },
-            {
-                title: 'إدارة المعلمات',
-                description: 'إضافة وتعديل حسابات المعلمات',
-                icon: '👥',
-                href: urls.teachers,
+                title: 'الإعدادات',
+                description: 'إدارة المعلمات ومتابعة ملفاتهن',
+                icon: '⚙️',
+                href: urls.settings,
             },
         ] : []),
     ];
@@ -135,7 +129,31 @@ function DashboardApp({ data }) {
     );
 }
 
+function normalizePrincipalSidebar() {
+    const nav = document.querySelector('.sidebar .nav');
+    if (!nav) return;
+
+    const teacherLinks = Array.from(nav.querySelectorAll('a')).filter((link) => {
+        const href = link.getAttribute('href') || '';
+        return href.includes('/teachers') || href.includes('/teacher-evidence');
+    });
+
+    if (!teacherLinks.length) return;
+
+    const hasSettings = Array.from(nav.querySelectorAll('a')).some((link) => (link.getAttribute('href') || '').includes('/settings'));
+
+    if (!hasSettings) {
+        const settings = document.createElement('a');
+        settings.href = '/settings';
+        settings.textContent = 'الإعدادات';
+        teacherLinks[0].before(settings);
+    }
+
+    teacherLinks.forEach((link) => link.remove());
+}
+
 function getIconForTab(label, href) {
+    if (href.includes('settings') || label.includes('الإعدادات')) return '⚙️';
     if (href.includes('teacher-evidence')) return '📂';
     if (href.includes('teachers')) return '👥';
     if (href.includes('evidence')) return '✅';
@@ -159,6 +177,8 @@ function isActiveTab(href) {
 }
 
 function readTabsFromSidebar() {
+    normalizePrincipalSidebar();
+
     return Array.from(document.querySelectorAll('.sidebar .nav a'))
         .map((link) => ({
             label: link.textContent.trim(),
@@ -265,6 +285,8 @@ function mountBottomTabs() {
 }
 
 function mountReactApps() {
+    normalizePrincipalSidebar();
+
     document.querySelectorAll('[data-react-app="dashboard"]').forEach((element) => {
         const data = JSON.parse(element.dataset.props || '{}');
         createRoot(element).render(<DashboardApp data={data} />);
