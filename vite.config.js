@@ -11,6 +11,7 @@ export default defineConfig({
                 'resources/js/app.jsx',
                 'resources/js/evidence-show.jsx',
                 'resources/js/settings.jsx',
+                'resources/js/teacher-evidence.jsx',
             ],
             refresh: true,
         }),
