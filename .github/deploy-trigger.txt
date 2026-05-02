@@ -1,1 +1,1 @@
-Deploy trigger: 2026-05-02 run fresh deploy after AMAL_SSH_USER changed to root
+Deploy trigger: 2026-05-03 deploy mobile preview URL fix
