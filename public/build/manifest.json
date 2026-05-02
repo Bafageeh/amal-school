@@ -1,6 +1,6 @@
 {
-  "_jsx-runtime-Cqou-Slb.js": {
-    "file": "assets/jsx-runtime-Cqou-Slb.js",
+  "_jsx-runtime-CUp5zjl2.js": {
+    "file": "assets/jsx-runtime-CUp5zjl2.js",
     "name": "jsx-runtime"
   },
   "resources/css/app.css": {
@@ -13,30 +13,39 @@
     "isEntry": true
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-zOjugkj1.js",
+    "file": "assets/app-D3peAW9U.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,
     "imports": [
-      "_jsx-runtime-Cqou-Slb.js"
+      "_jsx-runtime-CUp5zjl2.js"
     ]
   },
   "resources/js/evidence-show.jsx": {
-    "file": "assets/evidence-show-GQ7bORDc.js",
+    "file": "assets/evidence-show-D1NhBU8O.js",
     "name": "evidence-show",
     "src": "resources/js/evidence-show.jsx",
     "isEntry": true,
     "imports": [
-      "_jsx-runtime-Cqou-Slb.js"
+      "_jsx-runtime-CUp5zjl2.js"
     ]
   },
   "resources/js/settings.jsx": {
-    "file": "assets/settings-BzRNdJXG.js",
+    "file": "assets/settings-BMRE8tXF.js",
     "name": "settings",
     "src": "resources/js/settings.jsx",
     "isEntry": true,
     "imports": [
-      "_jsx-runtime-Cqou-Slb.js"
+      "_jsx-runtime-CUp5zjl2.js"
+    ]
+  },
+  "resources/js/teacher-evidence.jsx": {
+    "file": "assets/teacher-evidence-_jde7a_3.js",
+    "name": "teacher-evidence",
+    "src": "resources/js/teacher-evidence.jsx",
+    "isEntry": true,
+    "imports": [
+      "_jsx-runtime-CUp5zjl2.js"
     ]
   }
 }
