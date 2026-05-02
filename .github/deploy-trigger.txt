@@ -1,1 +1,1 @@
-Deploy trigger: 2026-05-02 after AMAL_PROJECT_PATH update to /mnt/home-storage/home/pmsa/apps/amal-school-api
+Deploy trigger: 2026-05-02 run fresh deploy after AMAL_SSH_USER changed to root
