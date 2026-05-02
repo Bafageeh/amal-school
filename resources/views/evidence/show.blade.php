@@ -9,13 +9,13 @@
 </div>
 
 <div class="card">
-    <h3>رفع ملف على معيار التقييم هذا</h3>
+    <h3>رفع ملفات على معيار التقييم هذا</h3>
 
     <form method="POST" action="{{ route('evidence.uploads.store', $evidence) }}" enctype="multipart/form-data">
         @csrf
 
         <label>
-            عنوان الملف
+            عنوان الملفات
             <input name="title" placeholder="اختياري">
         </label>
 
@@ -25,11 +25,12 @@
         </label>
 
         <label>
-            الملف
-            <input type="file" name="file" required>
+            الملفات
+            <input type="file" name="files[]" multiple required>
+            <small class="muted">يمكن اختيار أكثر من ملف دفعة واحدة.</small>
         </label>
 
-        <button class="btn green" type="submit">رفع الملف</button>
+        <button class="btn green" type="submit">رفع الملفات</button>
         <a class="btn gray" href="{{ route('evidence.index') }}">رجوع</a>
     </form>
 </div>
