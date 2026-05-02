@@ -170,6 +170,7 @@
                 <a href="{{ route('evidence.index') }}">معايير التقييم</a>
 
                 @if(auth()->user()->isPrincipal())
+                    <a href="{{ route('teacher-evidence.index') }}">متابعة ملفات المعلمات</a>
                     <a href="{{ route('teachers.index') }}">المعلمات</a>
                 @endif
 
