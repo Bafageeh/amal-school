@@ -135,11 +135,142 @@ function DashboardApp({ data }) {
     );
 }
 
+function getIconForTab(label, href) {
+    if (href.includes('teacher-evidence')) return '📂';
+    if (href.includes('teachers')) return '👥';
+    if (href.includes('evidence')) return '✅';
+    if (href.includes('dashboard')) return '🏠';
+    if (label.includes('الرئيسية')) return '🏠';
+    if (label.includes('المعلمات')) return '👥';
+    if (label.includes('ملفات')) return '📂';
+    if (label.includes('معايير')) return '✅';
+    return '•';
+}
+
+function isActiveTab(href) {
+    const currentPath = window.location.pathname.replace(/\/$/, '') || '/';
+    const linkPath = new URL(href, window.location.origin).pathname.replace(/\/$/, '') || '/';
+
+    if (linkPath === '/dashboard') {
+        return currentPath === '/dashboard' || currentPath === '/';
+    }
+
+    return currentPath === linkPath || currentPath.startsWith(`${linkPath}/`);
+}
+
+function readTabsFromSidebar() {
+    return Array.from(document.querySelectorAll('.sidebar .nav a'))
+        .map((link) => ({
+            label: link.textContent.trim(),
+            href: link.href,
+            icon: getIconForTab(link.textContent.trim(), link.href),
+            active: isActiveTab(link.href),
+        }))
+        .filter((tab) => tab.label && tab.href)
+        .slice(0, 4);
+}
+
+function BottomTabs({ tabs }) {
+    if (!tabs.length) return null;
+
+    return (
+        <nav className="react-bottom-tabs" aria-label="تبويب التنقل السفلي">
+            {tabs.map((tab) => (
+                <a key={tab.href} className={`react-bottom-tab ${tab.active ? 'active' : ''}`} href={tab.href}>
+                    <span className="react-bottom-tab-icon">{tab.icon}</span>
+                    <span className="react-bottom-tab-label">{tab.label}</span>
+                </a>
+            ))}
+        </nav>
+    );
+}
+
+function injectBottomTabsStyle() {
+    if (document.getElementById('react-bottom-tabs-style')) return;
+
+    const style = document.createElement('style');
+    style.id = 'react-bottom-tabs-style';
+    style.textContent = `
+        .react-bottom-tabs {
+            position: fixed;
+            left: 50%;
+            bottom: max(12px, env(safe-area-inset-bottom));
+            transform: translateX(-50%);
+            z-index: 9999;
+            width: min(560px, calc(100% - 24px));
+            min-height: 72px;
+            padding: 8px;
+            display: grid;
+            grid-template-columns: repeat(var(--tabs-count, 4), minmax(0, 1fr));
+            gap: 6px;
+            background: rgba(15, 23, 42, .88);
+            border: 1px solid rgba(255, 255, 255, .14);
+            border-radius: 26px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, .24);
+            backdrop-filter: blur(18px);
+            direction: rtl;
+        }
+        .react-bottom-tab {
+            min-width: 0;
+            display: grid;
+            place-items: center;
+            gap: 4px;
+            padding: 8px 6px;
+            border-radius: 20px;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-family: Tahoma, Arial, sans-serif;
+            font-size: 11px;
+            line-height: 1.2;
+            transition: .18s ease;
+        }
+        .react-bottom-tab:hover,
+        .react-bottom-tab.active {
+            background: #ffffff;
+            color: #0f172a;
+            transform: translateY(-2px);
+        }
+        .react-bottom-tab-icon {
+            font-size: 21px;
+            line-height: 1;
+        }
+        .react-bottom-tab-label {
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-align: center;
+            font-weight: 800;
+        }
+        body { padding-bottom: 94px; }
+        @media (min-width: 981px) {
+            .react-bottom-tabs { display: none; }
+            body { padding-bottom: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function mountBottomTabs() {
+    const tabs = readTabsFromSidebar();
+    if (!tabs.length || document.getElementById('react-bottom-tabs-root')) return;
+
+    injectBottomTabsStyle();
+
+    const rootElement = document.createElement('div');
+    rootElement.id = 'react-bottom-tabs-root';
+    rootElement.style.setProperty('--tabs-count', String(tabs.length));
+    document.body.appendChild(rootElement);
+    createRoot(rootElement).render(<BottomTabs tabs={tabs} />);
+}
+
 function mountReactApps() {
     document.querySelectorAll('[data-react-app="dashboard"]').forEach((element) => {
         const data = JSON.parse(element.dataset.props || '{}');
         createRoot(element).render(<DashboardApp data={data} />);
     });
+
+    mountBottomTabs();
 }
 
 if (document.readyState === 'loading') {
