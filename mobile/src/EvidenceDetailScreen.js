@@ -141,6 +141,7 @@ export default function EvidenceDetailScreen({ token, evidence, onBack }) {
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState(evidence);
   const [uploads, setUploads] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
@@ -148,12 +149,18 @@ export default function EvidenceDetailScreen({ token, evidence, onBack }) {
   const [uploading, setUploading] = useState(false);
   const [formOpen, setFormOpen] = useState(true);
 
+  const isPrincipal = currentUser?.is_principal || currentUser?.role === 'principal';
+
   async function load() {
     setLoading(true);
     try {
-      const data = await getJson(`/evidence/${evidence.id}`, token);
+      const [data, me] = await Promise.all([
+        getJson(`/evidence/${evidence.id}`, token),
+        getJson('/me', token),
+      ]);
       setItem(data.item);
       setUploads(data.uploads || []);
+      setCurrentUser(me.user || null);
     } catch (error) {
       Alert.alert('تعذر تحميل المعيار', error.message);
     } finally {
@@ -164,11 +171,13 @@ export default function EvidenceDetailScreen({ token, evidence, onBack }) {
   useEffect(() => { load(); }, [evidence.id]);
 
   async function pickFiles() {
+    if (isPrincipal) return;
     const result = await DocumentPicker.getDocumentAsync({ multiple: true, copyToCacheDirectory: true });
     if (!result.canceled) setFiles(result.assets || []);
   }
 
   async function uploadFiles() {
+    if (isPrincipal) return Alert.alert('تنبيه', 'رفع الملفات متاح للمعلمات فقط');
     if (!files.length) return Alert.alert('تنبيه', 'اختاري ملفًا واحدًا على الأقل');
     setUploading(true);
     try {
@@ -237,84 +246,88 @@ export default function EvidenceDetailScreen({ token, evidence, onBack }) {
         </View>
       </LinearGradient>
 
-      {/* Upload section header */}
-      <TouchableOpacity
-        style={styles.sectionToggle}
-        onPress={() => setFormOpen(!formOpen)}
-        activeOpacity={0.8}
-      >
-        <Ionicons name={formOpen ? 'chevron-up' : 'chevron-down'} size={18} color={C.muted} />
-        <View style={styles.sectionToggleText}>
-          <Text style={styles.sectionToggleTitle}>رفع ملفات جديدة</Text>
-          {files.length > 0 && (
-            <View style={styles.fileCountBadge}>
-              <Text style={styles.fileCountText}>{files.length}</Text>
+      {!isPrincipal && (
+        <>
+          {/* Upload section header */}
+          <TouchableOpacity
+            style={styles.sectionToggle}
+            onPress={() => setFormOpen(!formOpen)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name={formOpen ? 'chevron-up' : 'chevron-down'} size={18} color={C.muted} />
+            <View style={styles.sectionToggleText}>
+              <Text style={styles.sectionToggleTitle}>رفع ملفات جديدة</Text>
+              {files.length > 0 && (
+                <View style={styles.fileCountBadge}>
+                  <Text style={styles.fileCountText}>{files.length}</Text>
+                </View>
+              )}
             </View>
-          )}
-        </View>
-        <View style={styles.sectionToggleIcon}>
-          <Ionicons name="cloud-upload-outline" size={18} color={C.primary} />
-        </View>
-      </TouchableOpacity>
-
-      {/* Upload form */}
-      {formOpen && (
-        <View style={styles.formCard}>
-          <View style={styles.inputWrap}>
-            <TextInput
-              style={styles.input}
-              placeholder="عنوان الملفات — اختياري"
-              placeholderTextColor={C.subtle}
-              value={title}
-              onChangeText={setTitle}
-              textAlign="right"
-            />
-          </View>
-
-          <View style={[styles.inputWrap, { marginTop: 10 }]}>
-            <TextInput
-              style={[styles.input, styles.textarea]}
-              placeholder="ملاحظات — اختياري"
-              placeholderTextColor={C.subtle}
-              value={notes}
-              onChangeText={setNotes}
-              textAlign="right"
-              multiline
-              textAlignVertical="top"
-            />
-          </View>
-
-          {/* Picked files list */}
-          {files.map((f, i) => (
-            <PickedFileRow key={i} file={f} onRemove={() => setFiles(files.filter((_, j) => j !== i))} />
-          ))}
-
-          {/* Pick button */}
-          <TouchableOpacity style={styles.pickBtn} onPress={pickFiles} activeOpacity={0.82}>
-            <Ionicons name="attach-outline" size={19} color={C.primary} />
-            <Text style={styles.pickBtnText}>
-              {files.length ? `تغيير الملفات (${files.length})` : 'اختيار ملفات'}
-            </Text>
+            <View style={styles.sectionToggleIcon}>
+              <Ionicons name="cloud-upload-outline" size={18} color={C.primary} />
+            </View>
           </TouchableOpacity>
 
-          {/* Upload button — shown only when files are ready */}
-          {files.length > 0 && (
-            <TouchableOpacity style={styles.uploadBtn} onPress={uploadFiles} disabled={uploading} activeOpacity={0.88}>
-              <LinearGradient colors={[C.primary, C.primaryDark]} style={styles.uploadBtnGrad}>
-                {uploading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons name="cloud-upload-outline" size={19} color="#fff" />
-                    <Text style={styles.uploadBtnText}>
-                      رفع {files.length === 1 ? 'ملف واحد' : `${files.length} ملفات`}
-                    </Text>
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+          {/* Upload form */}
+          {formOpen && (
+            <View style={styles.formCard}>
+              <View style={styles.inputWrap}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="عنوان الملفات — اختياري"
+                  placeholderTextColor={C.subtle}
+                  value={title}
+                  onChangeText={setTitle}
+                  textAlign="right"
+                />
+              </View>
+
+              <View style={[styles.inputWrap, { marginTop: 10 }]}>
+                <TextInput
+                  style={[styles.input, styles.textarea]}
+                  placeholder="ملاحظات — اختياري"
+                  placeholderTextColor={C.subtle}
+                  value={notes}
+                  onChangeText={setNotes}
+                  textAlign="right"
+                  multiline
+                  textAlignVertical="top"
+                />
+              </View>
+
+              {/* Picked files list */}
+              {files.map((f, i) => (
+                <PickedFileRow key={i} file={f} onRemove={() => setFiles(files.filter((_, j) => j !== i))} />
+              ))}
+
+              {/* Pick button */}
+              <TouchableOpacity style={styles.pickBtn} onPress={pickFiles} activeOpacity={0.82}>
+                <Ionicons name="attach-outline" size={19} color={C.primary} />
+                <Text style={styles.pickBtnText}>
+                  {files.length ? `تغيير الملفات (${files.length})` : 'اختيار ملفات'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Upload button — shown only when files are ready */}
+              {files.length > 0 && (
+                <TouchableOpacity style={styles.uploadBtn} onPress={uploadFiles} disabled={uploading} activeOpacity={0.88}>
+                  <LinearGradient colors={[C.primary, C.primaryDark]} style={styles.uploadBtnGrad}>
+                    {uploading ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons name="cloud-upload-outline" size={19} color="#fff" />
+                        <Text style={styles.uploadBtnText}>
+                          رفع {files.length === 1 ? 'ملف واحد' : `${files.length} ملفات`}
+                        </Text>
+                      </>
+                    )}
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
           )}
-        </View>
+        </>
       )}
 
       {/* Uploaded files list */}
@@ -333,7 +346,9 @@ export default function EvidenceDetailScreen({ token, evidence, onBack }) {
             <Ionicons name="folder-open-outline" size={30} color={C.muted} />
           </View>
           <Text style={styles.emptyTitle}>لا توجد ملفات بعد</Text>
-          <Text style={styles.emptySubtitle}>ارفعي أول ملف لهذا المعيار من النموذج أعلاه</Text>
+          <Text style={styles.emptySubtitle}>
+            {isPrincipal ? 'لا توجد ملفات مرفوعة لهذا المعيار' : 'ارفعي أول ملف لهذا المعيار من النموذج أعلاه'}
+          </Text>
         </View>
       ) : (
         uploads.map((u) => <UploadCard key={u.id} upload={u} />)
