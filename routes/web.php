@@ -29,12 +29,15 @@ Route::get('/manifest.webmanifest', function () {
 })->name('pwa.manifest');
 
 Route::get('/service-worker.js', function () {
-    return response("self.addEventListener('install',event=>self.skipWaiting());self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));self.addEventListener('fetch',event=>{});", 200, ['Content-Type' => 'application/javascript']);
+    return response('', 200, ['Content-Type' => 'application/javascript']);
 });
 
 Route::get('/amal-icon.svg', function () {
     return response('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="110" fill="#111827"/><text x="256" y="304" text-anchor="middle" font-size="160" font-family="Arial" font-weight="700" fill="#ffffff">A</text></svg>', 200, ['Content-Type' => 'image/svg+xml']);
 })->name('pwa.icon');
+
+Route::get('/mobile-public/uploads/{upload}/preview/{name?}', [EvidenceUploadController::class, 'mobilePreview'])->name('mobile.uploads.preview');
+Route::get('/mobile-public/uploads/{upload}/download/{name?}', [EvidenceUploadController::class, 'mobileDownload'])->name('mobile.uploads.download');
 
 Route::prefix('mobile-api/v1')->group(function () {
     Route::post('/login', [MobileAuthController::class, 'login']);
