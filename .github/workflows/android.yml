@@ -17,19 +17,23 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 17
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
       - name: Install Expo app dependencies
         working-directory: mobile
         run: npm install --no-audit --no-fund
       - name: Prebuild Android project
         working-directory: mobile
         run: npx expo prebuild --platform android --clean --non-interactive
+      - name: Prepare Android Gradle properties
+        working-directory: mobile
+        run: |
+          node -e "const fs=require('fs');const p='android/gradle.properties';if(fs.existsSync(p)){const s=fs.readFileSync(p,'utf8').split(/\r?\n/).filter(l=>!l.startsWith('android.disableAutomaticComponentCreation')).join('\n');fs.writeFileSync(p,s+'\n');}"
       - name: Build debug APK
         working-directory: mobile/android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: amal-react-native-apk
