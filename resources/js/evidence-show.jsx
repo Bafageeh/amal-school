@@ -75,6 +75,15 @@ async function apiPostForm(url, formData) {
     return data;
 }
 
+function previewUrl(upload) {
+    return upload.download_url ? upload.download_url.replace(/\/download(\?.*)?$/, '/preview$1') : '#';
+}
+
+function canPreview(upload) {
+    const type = upload.file_type || '';
+    return type.startsWith('image/') || type === 'application/pdf' || type.startsWith('video/') || type.startsWith('audio/') || type.startsWith('text/');
+}
+
 function LoadingCard() {
     return (
         <div className="card empty-state">
@@ -94,20 +103,68 @@ function ErrorCard({ message }) {
     );
 }
 
-function UploadRow({ upload, isPrincipal, onDelete }) {
+function UploadPreviewModal({ upload, onClose }) {
+    if (!upload) return null;
+
+    const type = upload.file_type || '';
+    const url = previewUrl(upload);
+    const previewable = canPreview(upload);
+
     return (
-        <div className="upload-card">
+        <div className="file-preview-backdrop" onClick={onClose}>
+            <div className="file-preview-modal" onClick={(event) => event.stopPropagation()}>
+                <div className="file-preview-header">
+                    <div>
+                        <strong>{upload.title}</strong>
+                        <span>{upload.notes || 'عرض الملف بدون تحميله على الجوال'}</span>
+                    </div>
+                    <button type="button" className="file-preview-close" onClick={onClose}>×</button>
+                </div>
+
+                <div className="file-preview-body">
+                    {previewable && type.startsWith('image/') && <img src={url} alt={upload.title} />}
+                    {previewable && type === 'application/pdf' && <iframe title={upload.title} src={url} />}
+                    {previewable && type.startsWith('video/') && <video src={url} controls playsInline />}
+                    {previewable && type.startsWith('audio/') && <audio src={url} controls />}
+                    {previewable && type.startsWith('text/') && <iframe title={upload.title} src={url} />}
+                    {!previewable && (
+                        <div className="file-preview-empty">
+                            <div>📄</div>
+                            <strong>لا يمكن عرض هذا النوع داخل المتصفح</strong>
+                            <span>يمكنك تحميل الملف إذا رغبت في فتحه من تطبيق آخر.</span>
+                        </div>
+                    )}
+                </div>
+
+                <div className="file-preview-actions">
+                    <a className="btn light" href={upload.download_url}>تحميل على الجوال</a>
+                    <button className="btn gray" type="button" onClick={onClose}>إغلاق</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function UploadRow({ upload, isPrincipal, onDelete, onPreview }) {
+    return (
+        <div className="upload-card previewable-upload-card" role="button" tabIndex="0" onClick={() => onPreview(upload)} onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onPreview(upload);
+            }
+        }}>
             <div className="upload-card-main">
                 <div className="upload-file-icon">📎</div>
                 <div>
                     <strong>{upload.title}</strong>
-                    <div className="muted">{upload.notes || 'لا توجد ملاحظات.'}</div>
+                    <div className="muted">{upload.notes || 'اضغطي على البطاقة لعرض الملف.'}</div>
                     {isPrincipal && <div className="teacher-chip">{upload.uploader?.name || 'معلمة غير محددة'}</div>}
                 </div>
             </div>
             <div className="upload-card-footer">
                 <span>{upload.created_at}</span>
-                <div className="actions">
+                <div className="actions" onClick={(event) => event.stopPropagation()}>
+                    <button className="btn light" type="button" onClick={() => onPreview(upload)}>عرض</button>
                     <a className="btn light" href={upload.download_url}>تحميل</a>
                     <button className="btn red" type="button" onClick={() => onDelete(upload)}>حذف</button>
                 </div>
@@ -186,6 +243,7 @@ function EvidenceUploadForm({ evidenceId, onUploaded }) {
 
 function EvidenceShowApp({ evidenceId }) {
     const [state, setState] = useState({ loading: true, error: null, user: null, item: null, uploads: [] });
+    const [previewUpload, setPreviewUpload] = useState(null);
     const isPrincipal = useMemo(() => state.user?.role === 'principal', [state.user]);
 
     async function load() {
@@ -214,6 +272,7 @@ function EvidenceShowApp({ evidenceId }) {
 
         try {
             await apiDelete(`/api/v1/uploads/${upload.id}`);
+            setPreviewUpload(null);
             setState((current) => ({
                 ...current,
                 uploads: current.uploads.filter((item) => item.id !== upload.id),
@@ -228,6 +287,24 @@ function EvidenceShowApp({ evidenceId }) {
 
     return (
         <div className="react-evidence-show">
+            <style>{`
+                .previewable-upload-card { cursor: pointer; touch-action: manipulation; }
+                .previewable-upload-card:active { transform: scale(.995); }
+                .file-preview-backdrop { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: flex-end; justify-content: center; padding: 14px; background: rgba(15,23,42,.55); direction: rtl; }
+                .file-preview-modal { width: min(720px, 100%); max-height: min(88vh, 820px); display: flex; flex-direction: column; overflow: hidden; border-radius: 28px; background: #fff; box-shadow: 0 24px 70px rgba(15,23,42,.35); }
+                .file-preview-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px; border-bottom: 1px solid #eef2f7; }
+                .file-preview-header strong { display: block; color: #0f172a; font-size: 17px; font-weight: 950; line-height: 1.45; }
+                .file-preview-header span { display: block; margin-top: 3px; color: #64748b; font-size: 12px; line-height: 1.5; }
+                .file-preview-close { width: 38px; height: 38px; border: 0; border-radius: 999px; background: #f1f5f9; color: #0f172a; font-size: 26px; line-height: 1; cursor: pointer; }
+                .file-preview-body { min-height: 360px; max-height: 62vh; display: grid; place-items: center; overflow: auto; background: #f8fafc; }
+                .file-preview-body iframe, .file-preview-body video, .file-preview-body img { width: 100%; height: 62vh; max-height: 62vh; border: 0; object-fit: contain; background: #f8fafc; }
+                .file-preview-body audio { width: calc(100% - 28px); }
+                .file-preview-empty { display: grid; place-items: center; gap: 8px; padding: 28px; text-align: center; color: #64748b; }
+                .file-preview-empty div { font-size: 46px; }
+                .file-preview-empty strong { color: #0f172a; font-size: 18px; }
+                .file-preview-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; border-top: 1px solid #eef2f7; background: #fff; }
+                @media (min-width: 981px) { .file-preview-backdrop { align-items: center; } }
+            `}</style>
             <section className="hero-card">
                 <div>
                     <span className="hero-kicker">React + API</span>
@@ -244,7 +321,7 @@ function EvidenceShowApp({ evidenceId }) {
                 {state.uploads.length ? (
                     <div className="uploads-list">
                         {state.uploads.map((upload) => (
-                            <UploadRow key={upload.id} upload={upload} isPrincipal={isPrincipal} onDelete={handleDelete} />
+                            <UploadRow key={upload.id} upload={upload} isPrincipal={isPrincipal} onDelete={handleDelete} onPreview={setPreviewUpload} />
                         ))}
                     </div>
                 ) : (
@@ -254,6 +331,8 @@ function EvidenceShowApp({ evidenceId }) {
                     </div>
                 )}
             </section>
+
+            <UploadPreviewModal upload={previewUpload} onClose={() => setPreviewUpload(null)} />
         </div>
     );
 }
