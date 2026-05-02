@@ -17,6 +17,7 @@
         'urls' => [
             'dashboard' => route('dashboard'),
             'evidence' => route('evidence.index'),
+            'settings' => auth()->user()->isPrincipal() ? route('settings.index') : null,
             'teacherEvidence' => auth()->user()->isPrincipal() ? route('teacher-evidence.index') : null,
             'teachers' => auth()->user()->isPrincipal() ? route('teachers.index') : null,
         ],
