@@ -5,6 +5,7 @@ const ROUTES = {
     dashboard: '/dashboard',
     evidence: '/evidence',
     settings: '/settings',
+    teacherEvidence: '/teacher-evidence',
 };
 
 async function apiGet(url) {
@@ -121,8 +122,14 @@ function DashboardContent({ user, stats, latestUploads }) {
         },
         ...(isPrincipal ? [
             {
+                title: 'متابعة ملفات المعلمات',
+                description: 'اختيار معلمة ثم معيار لعرض ملفاتها.',
+                icon: '📂',
+                href: ROUTES.teacherEvidence,
+            },
+            {
                 title: 'الإعدادات',
-                description: 'إدارة المعلمات ومتابعة ملفاتهن',
+                description: 'إدارة المعلمات وإدخال المعايير',
                 icon: '⚙️',
                 href: ROUTES.settings,
             },
