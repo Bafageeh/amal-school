@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use App\Models\School;
-use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class TeacherAccountsSeeder extends Seeder
@@ -14,22 +14,11 @@ class TeacherAccountsSeeder extends Seeder
      */
     public function run(): void
     {
-        $schoolId = User::query()
-            ->where('role', 'principal')
-            ->whereNotNull('school_id')
-            ->value('school_id');
-
-        if (! $schoolId) {
-            $schoolId = School::query()->value('id');
+        if (! Schema::hasTable('users')) {
+            return;
         }
 
-        if (! $schoolId) {
-            $schoolId = School::query()->create([
-                'name' => 'مدرسة أمل',
-                'city' => null,
-                'district' => null,
-            ])->id;
-        }
+        $schoolId = $this->getSchoolId();
 
         $teachers = [
             'أسماء ماجد المطيري',
@@ -50,21 +39,61 @@ class TeacherAccountsSeeder extends Seeder
         foreach ($teachers as $index => $name) {
             $email = 'teacher'.str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT).'@teachers.local';
 
-            $user = User::query()->firstOrNew([
+            $payload = [
+                'name' => $name,
                 'username' => $name,
-            ]);
+                'email' => $email,
+                'password' => '',
+                'role' => 'teacher',
+                'updated_at' => now(),
+            ];
 
-            $user->school_id = $schoolId;
-            $user->name = $name;
-            $user->email = $user->exists ? $user->email : $email;
-            $user->role = 'teacher';
-
-            if (! $user->exists) {
-                $user->password = null;
-                $user->remember_token = Str::random(10);
+            if (Schema::hasColumn('users', 'school_id')) {
+                $payload['school_id'] = $schoolId;
             }
 
-            $user->save();
+            $existing = DB::table('users')
+                ->where('username', $name)
+                ->orWhere('email', $email)
+                ->first();
+
+            if ($existing) {
+                DB::table('users')->where('id', $existing->id)->update($payload);
+                continue;
+            }
+
+            $payload['created_at'] = now();
+            DB::table('users')->insert($payload);
         }
+    }
+
+    private function getSchoolId(): ?int
+    {
+        if (! Schema::hasTable('schools')) {
+            return DB::table('users')->where('role', 'principal')->value('school_id');
+        }
+
+        $schoolId = DB::table('users')
+            ->where('role', 'principal')
+            ->whereNotNull('school_id')
+            ->value('school_id');
+
+        if ($schoolId) {
+            return (int) $schoolId;
+        }
+
+        $schoolId = DB::table('schools')->value('id');
+
+        if ($schoolId) {
+            return (int) $schoolId;
+        }
+
+        return (int) DB::table('schools')->insertGetId([
+            'name' => 'مدرسة أمل',
+            'city' => null,
+            'district' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }
