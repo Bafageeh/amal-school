@@ -104,8 +104,21 @@ jobs:
           KEY_FILE="$HOME/.ssh/amal_github_actions"
           SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
 
+          if [ -n "${PROJECT_PATH_SECRET:-}" ]; then
+            PROJECT_PATH="$PROJECT_PATH_SECRET"
+          else
+            PROJECT_PATH=""
+          fi
+
+          # /mnt/home-storage/... is the real WHM/root path. Prefer root for it because pmsa cannot create /mnt.
+          if [[ "${PROJECT_PATH:-}" == /mnt/* ]]; then
+            CANDIDATES="root ${SSH_USER:-} pmsa"
+          else
+            CANDIDATES="${SSH_USER:-} pmsa root"
+          fi
+
           DEPLOY_USER=""
-          for candidate in ${SSH_USER:-} pmsa root; do
+          for candidate in $CANDIDATES; do
             if [ -z "$candidate" ]; then
               continue
             fi
@@ -118,22 +131,20 @@ jobs:
           done
 
           if [ -z "$DEPLOY_USER" ]; then
-            echo "::error::SSH authentication failed for configured user, pmsa, and root. Check AMAL_SSH_PRIVATE_KEY and authorized_keys on the server."
+            echo "::error::SSH authentication failed for candidate users. If AMAL_PROJECT_PATH starts with /mnt, authorize the SSH key for root or set AMAL_SSH_USER=root."
             exit 1
           fi
 
           echo "DEPLOY_USER=$DEPLOY_USER" >> "$GITHUB_ENV"
           echo "Using SSH user: $DEPLOY_USER"
 
-          if [ -n "${PROJECT_PATH_SECRET:-}" ]; then
-            PROJECT_PATH="$PROJECT_PATH_SECRET"
-          else
+          if [ -z "${PROJECT_PATH:-}" ]; then
             PROJECT_PATH=$(ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" 'set -e
               for path in \
-                /home/pmsa/apps/amal-school-api \
                 /mnt/home-storage/home/pmsa/apps/amal-school-api \
-                /home/pmsa/apps/amal-school/amal-school-api \
+                /home/pmsa/apps/amal-school-api \
                 /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api \
+                /home/pmsa/apps/amal-school/amal-school-api \
                 /var/www/amal-school-api \
                 /var/www/amal-school \
                 /var/www/html
@@ -143,7 +154,7 @@ jobs:
                   exit 0
                 fi
               done
-              echo /home/pmsa/apps/amal-school-api
+              echo /mnt/home-storage/home/pmsa/apps/amal-school-api
             ')
           fi
 
@@ -209,6 +220,5 @@ jobs:
             php artisan db:seed --class=TeacherAccountsSeeder --force || true
             CACHE_STORE=file php artisan optimize:clear
             CACHE_STORE=file php artisan config:cache
-            CACHE_STORE=file php artisan route:cache
             CACHE_STORE=file php artisan view:cache
           "
