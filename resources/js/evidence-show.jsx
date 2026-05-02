@@ -27,10 +27,7 @@ async function apiGet(url) {
         credentials: 'same-origin',
     });
 
-    if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-    }
-
+    if (!response.ok) throw new Error(`API request failed: ${response.status}`);
     return response.json();
 }
 
@@ -79,6 +76,18 @@ function previewUrl(upload) {
     return upload.download_url ? upload.download_url.replace(/\/download(\?.*)?$/, '/preview$1') : '#';
 }
 
+function fileKind(upload) {
+    const type = upload.file_type || '';
+    if (type === 'application/pdf') return { label: 'PDF', icon: 'PDF', tone: 'pdf' };
+    if (type.startsWith('image/')) return { label: 'صورة', icon: 'IMG', tone: 'image' };
+    if (type.startsWith('video/')) return { label: 'فيديو', icon: '▶', tone: 'video' };
+    if (type.startsWith('audio/')) return { label: 'صوت', icon: '♪', tone: 'audio' };
+    if (type.includes('word') || type.includes('document')) return { label: 'مستند', icon: 'DOC', tone: 'doc' };
+    if (type.includes('excel') || type.includes('spreadsheet')) return { label: 'جدول', icon: 'XLS', tone: 'sheet' };
+    if (type.includes('presentation') || type.includes('powerpoint')) return { label: 'عرض', icon: 'PPT', tone: 'slide' };
+    return { label: 'ملف', icon: 'FILE', tone: 'file' };
+}
+
 function canPreview(upload) {
     const type = upload.file_type || '';
     return type.startsWith('image/') || type === 'application/pdf' || type.startsWith('video/') || type.startsWith('audio/') || type.startsWith('text/');
@@ -103,22 +112,30 @@ function ErrorCard({ message }) {
     );
 }
 
-function UploadPreviewModal({ upload, onClose }) {
+function UploadPreviewModal({ upload, onClose, onDelete }) {
     if (!upload) return null;
 
     const type = upload.file_type || '';
     const url = previewUrl(upload);
+    const kind = fileKind(upload);
     const previewable = canPreview(upload);
 
     return (
         <div className="file-preview-backdrop" onClick={onClose}>
             <div className="file-preview-modal" onClick={(event) => event.stopPropagation()}>
+                <div className="file-preview-grabber" />
                 <div className="file-preview-header">
+                    <button type="button" className="file-preview-close" onClick={onClose}>×</button>
+                    <strong>عرض الملف</strong>
+                    <a className="file-preview-more" href={upload.download_url}>⬇</a>
+                </div>
+
+                <div className="file-preview-file-row">
+                    <div className={`native-file-icon ${kind.tone}`}>{kind.icon}</div>
                     <div>
                         <strong>{upload.title}</strong>
-                        <span>{upload.notes || 'عرض الملف بدون تحميله على الجوال'}</span>
+                        <span>{kind.label} • عرض بدون تحميل</span>
                     </div>
-                    <button type="button" className="file-preview-close" onClick={onClose}>×</button>
                 </div>
 
                 <div className="file-preview-body">
@@ -129,7 +146,7 @@ function UploadPreviewModal({ upload, onClose }) {
                     {previewable && type.startsWith('text/') && <iframe title={upload.title} src={url} />}
                     {!previewable && (
                         <div className="file-preview-empty">
-                            <div>📄</div>
+                            <div className={`native-file-icon ${kind.tone}`}>{kind.icon}</div>
                             <strong>لا يمكن عرض هذا النوع داخل المتصفح</strong>
                             <span>يمكنك تحميل الملف إذا رغبت في فتحه من تطبيق آخر.</span>
                         </div>
@@ -138,36 +155,33 @@ function UploadPreviewModal({ upload, onClose }) {
 
                 <div className="file-preview-actions">
                     <a className="btn light" href={upload.download_url}>تحميل على الجوال</a>
-                    <button className="btn gray" type="button" onClick={onClose}>إغلاق</button>
+                    <button className="btn red" type="button" onClick={() => onDelete(upload)}>حذف الملف</button>
                 </div>
             </div>
         </div>
     );
 }
 
-function UploadRow({ upload, isPrincipal, onDelete, onPreview }) {
+function UploadRow({ upload, isPrincipal, onPreview }) {
+    const kind = fileKind(upload);
+
     return (
-        <div className="upload-card previewable-upload-card" role="button" tabIndex="0" onClick={() => onPreview(upload)} onKeyDown={(event) => {
+        <div className="upload-card native-upload-card" role="button" tabIndex="0" onClick={() => onPreview(upload)} onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
                 onPreview(upload);
             }
         }}>
-            <div className="upload-card-main">
-                <div className="upload-file-icon">📎</div>
-                <div>
+            <div className="upload-card-main native-upload-main">
+                <div className={`native-file-icon ${kind.tone}`}>{kind.icon}</div>
+                <div className="native-upload-info">
                     <strong>{upload.title}</strong>
-                    <div className="muted">{upload.notes || 'اضغطي على البطاقة لعرض الملف.'}</div>
+                    <div className="muted">{kind.label}{upload.notes ? ` • ${upload.notes}` : ' • اضغطي لعرض الملف'}</div>
                     {isPrincipal && <div className="teacher-chip">{upload.uploader?.name || 'معلمة غير محددة'}</div>}
                 </div>
             </div>
-            <div className="upload-card-footer">
+            <div className="upload-card-footer native-upload-footer">
                 <span>{upload.created_at}</span>
-                <div className="actions" onClick={(event) => event.stopPropagation()}>
-                    <button className="btn light" type="button" onClick={() => onPreview(upload)}>عرض</button>
-                    <a className="btn light" href={upload.download_url}>تحميل</a>
-                    <button className="btn red" type="button" onClick={() => onDelete(upload)}>حذف</button>
-                </div>
             </div>
         </div>
     );
@@ -288,23 +302,46 @@ function EvidenceShowApp({ evidenceId }) {
     return (
         <div className="react-evidence-show">
             <style>{`
-                .previewable-upload-card { cursor: pointer; touch-action: manipulation; }
-                .previewable-upload-card:active { transform: scale(.995); }
-                .file-preview-backdrop { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: flex-end; justify-content: center; padding: 14px; background: rgba(15,23,42,.55); direction: rtl; }
-                .file-preview-modal { width: min(720px, 100%); max-height: min(88vh, 820px); display: flex; flex-direction: column; overflow: hidden; border-radius: 28px; background: #fff; box-shadow: 0 24px 70px rgba(15,23,42,.35); }
-                .file-preview-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px; border-bottom: 1px solid #eef2f7; }
-                .file-preview-header strong { display: block; color: #0f172a; font-size: 17px; font-weight: 950; line-height: 1.45; }
-                .file-preview-header span { display: block; margin-top: 3px; color: #64748b; font-size: 12px; line-height: 1.5; }
-                .file-preview-close { width: 38px; height: 38px; border: 0; border-radius: 999px; background: #f1f5f9; color: #0f172a; font-size: 26px; line-height: 1; cursor: pointer; }
-                .file-preview-body { min-height: 360px; max-height: 62vh; display: grid; place-items: center; overflow: auto; background: #f8fafc; }
-                .file-preview-body iframe, .file-preview-body video, .file-preview-body img { width: 100%; height: 62vh; max-height: 62vh; border: 0; object-fit: contain; background: #f8fafc; }
+                @media (max-width: 980px) {
+                    .react-evidence-show .uploads-list { gap: 12px !important; }
+                    .react-evidence-show .native-upload-card { min-height: auto !important; padding: 16px !important; border-radius: 24px !important; background: #fff !important; border: 1px solid #e5e7eb !important; box-shadow: 0 10px 22px rgba(15,23,42,.06) !important; cursor: pointer; touch-action: manipulation; }
+                    .react-evidence-show .native-upload-card:active { transform: scale(.992); }
+                    .react-evidence-show .native-upload-main { display: flex !important; flex-direction: row !important; align-items: flex-start !important; gap: 14px !important; direction: ltr !important; }
+                    .native-upload-info { width: 100%; min-width: 0; text-align: right; direction: rtl; }
+                    .react-evidence-show .native-upload-info strong { display: block !important; color: #0f172a !important; font-size: 19px !important; line-height: 1.35 !important; font-weight: 950 !important; text-align: right !important; }
+                    .react-evidence-show .native-upload-info .muted { margin-top: 5px !important; color: #64748b !important; font-size: 13px !important; line-height: 1.5 !important; text-align: right !important; }
+                    .react-evidence-show .native-upload-footer { margin-top: 12px !important; padding-top: 10px !important; border-top: 1px solid #eef2f7 !important; display: flex !important; justify-content: flex-end !important; }
+                    .react-evidence-show .native-upload-footer span { color: #64748b !important; font-size: 12.5px !important; font-weight: 700 !important; direction: ltr !important; }
+                    .react-evidence-show .native-upload-footer span::after { content: ' ◷'; color: #94a3b8; }
+                }
+                .native-file-icon { width: 62px; height: 62px; min-width: 62px; display: grid; place-items: center; border-radius: 20px; font-weight: 950; font-size: 15px; letter-spacing: -.5px; }
+                .native-file-icon.pdf { background: #fee2e2; color: #dc2626; }
+                .native-file-icon.image { background: #eaf7ee; color: #22a66f; }
+                .native-file-icon.video { background: #f1edff; color: #5b45ce; font-size: 24px; }
+                .native-file-icon.audio { background: #fff7ed; color: #ea580c; font-size: 24px; }
+                .native-file-icon.doc, .native-file-icon.file { background: #eef4ff; color: #2563eb; }
+                .native-file-icon.sheet { background: #ecfdf5; color: #16a34a; }
+                .native-file-icon.slide { background: #fef3c7; color: #d97706; }
+                .file-preview-backdrop { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: flex-end; justify-content: center; background: rgba(15,23,42,.55); direction: rtl; }
+                .file-preview-modal { width: 100%; max-width: 720px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; border-radius: 30px 30px 0 0; background: #fff; box-shadow: 0 -22px 70px rgba(15,23,42,.32); }
+                .file-preview-grabber { width: 52px; height: 6px; margin: 10px auto 0; border-radius: 999px; background: #d1d5db; }
+                .file-preview-header { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 10px; padding: 12px 16px; }
+                .file-preview-header strong { text-align: center; color: #0f172a; font-size: 20px; font-weight: 950; }
+                .file-preview-close, .file-preview-more { width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: 999px; background: #f1f5f9; color: #0f172a; font-size: 26px; line-height: 1; cursor: pointer; text-decoration: none; }
+                .file-preview-more { font-size: 19px; color: #2563eb; }
+                .file-preview-file-row { margin: 0 16px 12px; padding: 12px; display: flex; gap: 12px; align-items: center; flex-direction: row-reverse; border: 1px solid #e5e7eb; border-radius: 18px; background: #fff; }
+                .file-preview-file-row > div:last-child { min-width: 0; width: 100%; text-align: right; }
+                .file-preview-file-row strong { display: block; color: #0f172a; font-size: 16px; line-height: 1.35; font-weight: 950; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                .file-preview-file-row span { display: block; margin-top: 4px; color: #64748b; font-size: 12px; }
+                .file-preview-body { min-height: 350px; max-height: 58vh; display: grid; place-items: center; overflow: auto; background: #f8fafc; border-top: 1px solid #eef2f7; border-bottom: 1px solid #eef2f7; }
+                .file-preview-body iframe, .file-preview-body video, .file-preview-body img { width: 100%; height: 58vh; max-height: 58vh; border: 0; object-fit: contain; background: #f8fafc; }
                 .file-preview-body audio { width: calc(100% - 28px); }
-                .file-preview-empty { display: grid; place-items: center; gap: 8px; padding: 28px; text-align: center; color: #64748b; }
-                .file-preview-empty div { font-size: 46px; }
+                .file-preview-empty { display: grid; place-items: center; gap: 10px; padding: 28px; text-align: center; color: #64748b; }
                 .file-preview-empty strong { color: #0f172a; font-size: 18px; }
-                .file-preview-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; border-top: 1px solid #eef2f7; background: #fff; }
-                @media (min-width: 981px) { .file-preview-backdrop { align-items: center; } }
+                .file-preview-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 16px 18px; background: #fff; }
+                @media (min-width: 981px) { .file-preview-backdrop { align-items: center; padding: 18px; } .file-preview-modal { border-radius: 30px; } }
             `}</style>
+
             <section className="hero-card">
                 <div>
                     <span className="hero-kicker">React + API</span>
@@ -321,7 +358,7 @@ function EvidenceShowApp({ evidenceId }) {
                 {state.uploads.length ? (
                     <div className="uploads-list">
                         {state.uploads.map((upload) => (
-                            <UploadRow key={upload.id} upload={upload} isPrincipal={isPrincipal} onDelete={handleDelete} onPreview={setPreviewUpload} />
+                            <UploadRow key={upload.id} upload={upload} isPrincipal={isPrincipal} onPreview={setPreviewUpload} />
                         ))}
                     </div>
                 ) : (
@@ -332,7 +369,7 @@ function EvidenceShowApp({ evidenceId }) {
                 )}
             </section>
 
-            <UploadPreviewModal upload={previewUpload} onClose={() => setPreviewUpload(null)} />
+            <UploadPreviewModal upload={previewUpload} onClose={() => setPreviewUpload(null)} onDelete={handleDelete} />
         </div>
     );
 }
@@ -340,9 +377,7 @@ function EvidenceShowApp({ evidenceId }) {
 function mountEvidenceShow() {
     document.querySelectorAll('[data-react-app="evidence-show"]').forEach((element) => {
         const evidenceId = element.dataset.evidenceId;
-        if (evidenceId) {
-            createRoot(element).render(<EvidenceShowApp evidenceId={evidenceId} />);
-        }
+        if (evidenceId) createRoot(element).render(<EvidenceShowApp evidenceId={evidenceId} />);
     });
 }
 
