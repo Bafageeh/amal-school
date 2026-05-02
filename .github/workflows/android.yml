@@ -31,10 +31,10 @@ jobs:
         working-directory: mobile
         run: |
           node -e "const fs=require('fs');const p='android/gradle.properties';if(fs.existsSync(p)){const s=fs.readFileSync(p,'utf8').split(/\r?\n/).filter(l=>!l.startsWith('android.disableAutomaticComponentCreation')).join('\n');fs.writeFileSync(p,s+'\n');}"
-      - name: Build debug APK
+      - name: Build bundled release APK
         working-directory: mobile/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleRelease --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: amal-react-native-apk
-          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          name: amal-react-native-release-apk
+          path: mobile/android/app/build/outputs/apk/release/*.apk
