@@ -1,4 +1,4 @@
-name: Deploy to server
+name: Deploy to Amal server
 
 on:
   workflow_dispatch:
@@ -6,9 +6,14 @@ on:
     branches:
       - main
 
+concurrency:
+  group: amal-production-deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -18,10 +23,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Build frontend assets
         run: |
-          set -e
+          set -euo pipefail
           npm install --no-audit --no-fund
           npm run build
 
@@ -32,11 +38,11 @@ jobs:
           SSH_PRIVATE_KEY_B64: ${{ secrets.AMAL_SSH_PRIVATE_KEY_B64 }}
           SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
         run: |
-          set -e
+          set -euo pipefail
           SSH_PORT="${SSH_PORT:-22}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
 
-          if [ -z "$SSH_HOST" ]; then
+          if [ -z "${SSH_HOST:-}" ]; then
             echo "::error::Missing GitHub secret AMAL_SSH_HOST"
             exit 1
           fi
@@ -56,7 +62,7 @@ jobs:
 
           KEY_OK=0
 
-          if [ -n "$SSH_PRIVATE_KEY" ]; then
+          if [ -n "${SSH_PRIVATE_KEY:-}" ]; then
             printf '%s' "$SSH_PRIVATE_KEY" > "$KEY_FILE"
             normalize_plain_key "$KEY_FILE"
             if validate_key "$KEY_FILE"; then
@@ -66,7 +72,7 @@ jobs:
             fi
           fi
 
-          if [ "$KEY_OK" != "1" ] && [ -n "$SSH_PRIVATE_KEY_B64" ]; then
+          if [ "$KEY_OK" != "1" ] && [ -n "${SSH_PRIVATE_KEY_B64:-}" ]; then
             if printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d '\r\n ' | base64 -d > "$KEY_FILE" 2>/tmp/amal_key_decode_error; then
               normalize_plain_key "$KEY_FILE"
               if validate_key "$KEY_FILE"; then
@@ -86,21 +92,17 @@ jobs:
 
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> "$HOME/.ssh/known_hosts"
 
-      - name: Deploy and run Laravel commands
+      - name: Detect server user and project path
         env:
           SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
           SSH_USER: ${{ secrets.AMAL_SSH_USER }}
           SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+          PROJECT_PATH_SECRET: ${{ secrets.AMAL_PROJECT_PATH }}
         run: |
-          set -e
+          set -euo pipefail
           SSH_PORT="${SSH_PORT:-22}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
           SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
-
-          if [ -z "$SSH_HOST" ]; then
-            echo "::error::Missing GitHub secret AMAL_SSH_HOST"
-            exit 1
-          fi
 
           DEPLOY_USER=""
           for candidate in ${SSH_USER:-} pmsa root; do
@@ -116,14 +118,52 @@ jobs:
           done
 
           if [ -z "$DEPLOY_USER" ]; then
-            echo "::error::SSH authentication failed for configured user, pmsa, and root. Check AMAL_SSH_PRIVATE_KEY and that its public key exists in ~/.ssh/authorized_keys for the server user."
+            echo "::error::SSH authentication failed for configured user, pmsa, and root. Check AMAL_SSH_PRIVATE_KEY and authorized_keys on the server."
             exit 1
           fi
 
+          echo "DEPLOY_USER=$DEPLOY_USER" >> "$GITHUB_ENV"
           echo "Using SSH user: $DEPLOY_USER"
 
-          PROJECT_PATH="/home/pmsa/apps/amal-school/amal-school-api"
+          if [ -n "${PROJECT_PATH_SECRET:-}" ]; then
+            PROJECT_PATH="$PROJECT_PATH_SECRET"
+          else
+            PROJECT_PATH=$(ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" 'set -e
+              for path in \
+                /home/pmsa/apps/amal-school-api \
+                /mnt/home-storage/home/pmsa/apps/amal-school-api \
+                /home/pmsa/apps/amal-school/amal-school-api \
+                /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api \
+                /var/www/amal-school-api \
+                /var/www/amal-school \
+                /var/www/html
+              do
+                if [ -f "$path/artisan" ]; then
+                  echo "$path"
+                  exit 0
+                fi
+              done
+              echo /home/pmsa/apps/amal-school-api
+            ')
+          fi
+
+          if [ -z "$PROJECT_PATH" ]; then
+            echo "::error::Could not resolve project path. Add GitHub secret AMAL_PROJECT_PATH."
+            exit 1
+          fi
+
+          echo "PROJECT_PATH=$PROJECT_PATH" >> "$GITHUB_ENV"
           echo "Deploying to: $PROJECT_PATH"
+
+      - name: Upload files to server
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          SSH_PORT="${SSH_PORT:-22}"
+          KEY_FILE="$HOME/.ssh/amal_github_actions"
+          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
 
           ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH'"
           rsync -az \
@@ -138,4 +178,37 @@ jobs:
             -e "ssh $SSH_OPTS" \
             ./ "$DEPLOY_USER@$SSH_HOST:$PROJECT_PATH/"
 
-          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; pwd; php -v; test -f vendor/autoload.php || { echo 'vendor/autoload.php is missing'; exit 1; }; mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; php artisan migrate --force; php artisan db:seed --class=TeacherAccountsSeeder --force; CACHE_STORE=file php -d display_errors=1 artisan optimize:clear"
+      - name: Run Laravel production commands
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          SSH_PORT="${SSH_PORT:-22}"
+          KEY_FILE="$HOME/.ssh/amal_github_actions"
+          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
+
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "set -e
+            cd '$PROJECT_PATH'
+            pwd
+            php -v
+            if [ ! -f .env ]; then
+              echo '::error::.env is missing on the server project path.'
+              exit 1
+            fi
+            if [ ! -f vendor/autoload.php ]; then
+              if command -v composer >/dev/null 2>&1; then
+                composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+              else
+                echo '::error::vendor/autoload.php is missing and composer is not available on the server.'
+                exit 1
+              fi
+            fi
+            mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+            php artisan migrate --force
+            php artisan db:seed --class=TeacherAccountsSeeder --force || true
+            CACHE_STORE=file php artisan optimize:clear
+            CACHE_STORE=file php artisan config:cache
+            CACHE_STORE=file php artisan route:cache
+            CACHE_STORE=file php artisan view:cache
+          "
