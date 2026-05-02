@@ -2,9 +2,13 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
+  Modal,
   Platform,
+  SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -14,6 +18,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import { WebView } from 'react-native-webview';
 
 const API = 'https://amal.pm.sa/mobile-api/v1';
 
@@ -69,10 +74,45 @@ async function postForm(path, token, formData) {
 // ─── File type helpers ────────────────────────────────────────────────────────
 function getFileStyle(name = '') {
   const ext = name.split('.').pop().toLowerCase();
-  if (ext === 'pdf')                              return { icon: 'document-text-outline', bg: C.redLight,   color: C.red   };
-  if (['jpg','jpeg','png','gif','webp'].includes(ext)) return { icon: 'image-outline',        bg: C.tealLight, color: C.teal  };
-  if (['doc','docx'].includes(ext))               return { icon: 'document-outline',      bg: C.primaryLight, color: C.primary };
+  if (ext === 'pdf') return { icon: 'document-text-outline', bg: C.redLight, color: C.red };
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return { icon: 'image-outline', bg: C.tealLight, color: C.teal };
+  if (['doc', 'docx'].includes(ext)) return { icon: 'document-outline', bg: C.primaryLight, color: C.primary };
   return { icon: 'document-outline', bg: C.primaryLight, color: C.primary };
+}
+
+function resolveFileUrl(upload) {
+  return upload?.download_url || upload?.file_url || upload?.url || upload?.file?.url || null;
+}
+
+function resolveFileName(upload) {
+  return upload?.original_name || upload?.file_name || upload?.filename || upload?.title || `file-${upload?.id || Date.now()}`;
+}
+
+function getFileExtension(upload) {
+  const source = `${resolveFileName(upload)} ${resolveFileUrl(upload) || ''}`;
+  const clean = source.split('?')[0].split('#')[0];
+  const parts = clean.split('.');
+  return parts.length > 1 ? parts.pop().toLowerCase() : '';
+}
+
+function getPreviewType(upload) {
+  const ext = getFileExtension(upload);
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) return 'image';
+  if (ext === 'pdf') return 'pdf';
+  if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(ext)) return 'office';
+  return 'web';
+}
+
+function getPreviewUrl(upload) {
+  const fileUrl = resolveFileUrl(upload);
+  if (!fileUrl) return null;
+
+  const type = getPreviewType(upload);
+  if (type === 'office' || type === 'pdf') {
+    return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(fileUrl)}`;
+  }
+
+  return fileUrl;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -96,11 +136,13 @@ function PickedFileRow({ file, onRemove }) {
   );
 }
 
-function UploadCard({ upload, onDelete }) {
+function UploadCard({ upload, onPreview, onDownload }) {
+  const fileName = resolveFileName(upload);
+  const { icon, bg, color } = getFileStyle(fileName);
+
   return (
-    <View style={styles.uploadCard}>
+    <TouchableOpacity style={styles.uploadCard} onPress={onPreview} activeOpacity={0.88}>
       <View style={styles.uploadCardBody}>
-        {/* Meta row */}
         <View style={styles.uploadMeta}>
           {upload.uploader?.name ? (
             <View style={styles.uploaderChip}>
@@ -111,28 +153,33 @@ function UploadCard({ upload, onDelete }) {
           <Text style={styles.uploadDate}>{upload.created_at}</Text>
         </View>
 
-        <Text style={styles.uploadTitle} numberOfLines={2}>{upload.title}</Text>
+        <View style={styles.uploadTitleRow}>
+          <View style={[styles.uploadFileIcon, { backgroundColor: bg }]}>
+            <Ionicons name={icon} size={18} color={color} />
+          </View>
+          <View style={styles.uploadTitleTextWrap}>
+            <Text style={styles.uploadTitle} numberOfLines={2}>{upload.title || fileName}</Text>
+            {upload.title && fileName && upload.title !== fileName ? (
+              <Text style={styles.uploadFileName} numberOfLines={1}>{fileName}</Text>
+            ) : null}
+          </View>
+        </View>
+
         {upload.notes ? <Text style={styles.uploadNotes} numberOfLines={2}>{upload.notes}</Text> : null}
       </View>
 
-      {/* Actions */}
       <View style={styles.uploadActions}>
-        <TouchableOpacity
-          style={styles.downloadBtn}
-          onPress={() => Linking.openURL(upload.download_url)}
-          activeOpacity={0.8}
-        >
+        <TouchableOpacity style={styles.previewBtn} onPress={onPreview} activeOpacity={0.8}>
+          <Ionicons name="eye-outline" size={16} color={C.primary} />
+          <Text style={styles.previewText}>معاينة</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.downloadBtn} onPress={onDownload} activeOpacity={0.8}>
           <Ionicons name="download-outline" size={16} color={C.primary} />
           <Text style={styles.downloadText}>تحميل</Text>
         </TouchableOpacity>
-
-        {onDelete && (
-          <TouchableOpacity style={styles.deleteBtn} onPress={() => onDelete(upload)} activeOpacity={0.8}>
-            <Ionicons name="trash-outline" size={16} color={C.red} />
-          </TouchableOpacity>
-        )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -148,6 +195,10 @@ export default function EvidenceDetailScreen({ token, evidence, onBack }) {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [formOpen, setFormOpen] = useState(true);
+
+  const [previewUpload, setPreviewUpload] = useState(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const isPrincipal = currentUser?.is_principal || currentUser?.role === 'principal';
 
@@ -201,6 +252,34 @@ export default function EvidenceDetailScreen({ token, evidence, onBack }) {
     }
   }
 
+  function openPreview(upload) {
+    const url = getPreviewUrl(upload);
+    if (!url) {
+      Alert.alert('تنبيه', 'رابط الملف غير متوفر');
+      return;
+    }
+    setPreviewUpload(upload);
+    setPreviewLoading(true);
+    setPreviewVisible(true);
+  }
+
+  function closePreview() {
+    setPreviewVisible(false);
+    setPreviewUpload(null);
+    setPreviewLoading(false);
+  }
+
+  function downloadUpload(upload) {
+    const url = resolveFileUrl(upload);
+    if (!url) {
+      Alert.alert('تنبيه', 'رابط الملف غير متوفر');
+      return;
+    }
+    Linking.openURL(url).catch((error) => {
+      Alert.alert('تعذر فتح رابط التحميل', error.message);
+    });
+  }
+
   if (loading) {
     return (
       <View style={styles.loadingWrap}>
@@ -211,151 +290,201 @@ export default function EvidenceDetailScreen({ token, evidence, onBack }) {
   }
 
   return (
-    <ScrollView
-      style={styles.root}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
-      {/* Back button */}
-      <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.8}>
-        <Ionicons name="arrow-forward-outline" size={18} color={C.primary} />
-        <Text style={styles.backText}>المعايير</Text>
-      </TouchableOpacity>
+    <>
+      <ScrollView
+        style={styles.root}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.8}>
+          <Ionicons name="arrow-forward-outline" size={18} color={C.primary} />
+          <Text style={styles.backText}>المعايير</Text>
+        </TouchableOpacity>
 
-      {/* Hero */}
-      <LinearGradient colors={C.grad} style={styles.hero}>
-        <View style={styles.heroDecor1} />
-        <View style={styles.heroDecor2} />
+        <LinearGradient colors={C.grad} style={styles.hero}>
+          <View style={styles.heroDecor1} />
+          <View style={styles.heroDecor2} />
 
-        <View style={styles.heroBadge}>
-          <Ionicons name="checkmark-done-circle-outline" size={13} color="rgba(255,255,255,0.75)" />
-          <Text style={styles.heroBadgeText}>معيار التقييم</Text>
-        </View>
-
-        <Text style={styles.heroTitle}>{item?.title}</Text>
-        {item?.description ? (
-          <Text style={styles.heroDesc}>{item.description}</Text>
-        ) : null}
-
-        <View style={styles.heroCountRow}>
-          <View style={styles.heroCountItem}>
-            <Text style={styles.heroCountNum}>{uploads.length}</Text>
-            <Text style={styles.heroCountLabel}>ملف مرفوع</Text>
+          <View style={styles.heroBadge}>
+            <Ionicons name="checkmark-done-circle-outline" size={13} color="rgba(255,255,255,0.75)" />
+            <Text style={styles.heroBadgeText}>معيار التقييم</Text>
           </View>
-        </View>
-      </LinearGradient>
 
-      {!isPrincipal && (
-        <>
-          {/* Upload section header */}
-          <TouchableOpacity
-            style={styles.sectionToggle}
-            onPress={() => setFormOpen(!formOpen)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name={formOpen ? 'chevron-up' : 'chevron-down'} size={18} color={C.muted} />
-            <View style={styles.sectionToggleText}>
-              <Text style={styles.sectionToggleTitle}>رفع ملفات جديدة</Text>
-              {files.length > 0 && (
-                <View style={styles.fileCountBadge}>
-                  <Text style={styles.fileCountText}>{files.length}</Text>
+          <Text style={styles.heroTitle}>{item?.title}</Text>
+          {item?.description ? <Text style={styles.heroDesc}>{item.description}</Text> : null}
+
+          <View style={styles.heroCountRow}>
+            <View style={styles.heroCountItem}>
+              <Text style={styles.heroCountNum}>{uploads.length}</Text>
+              <Text style={styles.heroCountLabel}>ملف مرفوع</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        {!isPrincipal && (
+          <>
+            <TouchableOpacity style={styles.sectionToggle} onPress={() => setFormOpen(!formOpen)} activeOpacity={0.8}>
+              <Ionicons name={formOpen ? 'chevron-up' : 'chevron-down'} size={18} color={C.muted} />
+              <View style={styles.sectionToggleText}>
+                <Text style={styles.sectionToggleTitle}>رفع ملفات جديدة</Text>
+                {files.length > 0 && (
+                  <View style={styles.fileCountBadge}>
+                    <Text style={styles.fileCountText}>{files.length}</Text>
+                  </View>
+                )}
+              </View>
+              <View style={styles.sectionToggleIcon}>
+                <Ionicons name="cloud-upload-outline" size={18} color={C.primary} />
+              </View>
+            </TouchableOpacity>
+
+            {formOpen && (
+              <View style={styles.formCard}>
+                <View style={styles.inputWrap}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="عنوان الملفات — اختياري"
+                    placeholderTextColor={C.subtle}
+                    value={title}
+                    onChangeText={setTitle}
+                    textAlign="right"
+                  />
                 </View>
-              )}
-            </View>
-            <View style={styles.sectionToggleIcon}>
-              <Ionicons name="cloud-upload-outline" size={18} color={C.primary} />
-            </View>
-          </TouchableOpacity>
 
-          {/* Upload form */}
-          {formOpen && (
-            <View style={styles.formCard}>
-              <View style={styles.inputWrap}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="عنوان الملفات — اختياري"
-                  placeholderTextColor={C.subtle}
-                  value={title}
-                  onChangeText={setTitle}
-                  textAlign="right"
-                />
-              </View>
+                <View style={[styles.inputWrap, { marginTop: 10 }]}>
+                  <TextInput
+                    style={[styles.input, styles.textarea]}
+                    placeholder="ملاحظات — اختياري"
+                    placeholderTextColor={C.subtle}
+                    value={notes}
+                    onChangeText={setNotes}
+                    textAlign="right"
+                    multiline
+                    textAlignVertical="top"
+                  />
+                </View>
 
-              <View style={[styles.inputWrap, { marginTop: 10 }]}>
-                <TextInput
-                  style={[styles.input, styles.textarea]}
-                  placeholder="ملاحظات — اختياري"
-                  placeholderTextColor={C.subtle}
-                  value={notes}
-                  onChangeText={setNotes}
-                  textAlign="right"
-                  multiline
-                  textAlignVertical="top"
-                />
-              </View>
+                {files.map((f, i) => (
+                  <PickedFileRow key={i} file={f} onRemove={() => setFiles(files.filter((_, j) => j !== i))} />
+                ))}
 
-              {/* Picked files list */}
-              {files.map((f, i) => (
-                <PickedFileRow key={i} file={f} onRemove={() => setFiles(files.filter((_, j) => j !== i))} />
-              ))}
-
-              {/* Pick button */}
-              <TouchableOpacity style={styles.pickBtn} onPress={pickFiles} activeOpacity={0.82}>
-                <Ionicons name="attach-outline" size={19} color={C.primary} />
-                <Text style={styles.pickBtnText}>
-                  {files.length ? `تغيير الملفات (${files.length})` : 'اختيار ملفات'}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Upload button — shown only when files are ready */}
-              {files.length > 0 && (
-                <TouchableOpacity style={styles.uploadBtn} onPress={uploadFiles} disabled={uploading} activeOpacity={0.88}>
-                  <LinearGradient colors={[C.primary, C.primaryDark]} style={styles.uploadBtnGrad}>
-                    {uploading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <>
-                        <Ionicons name="cloud-upload-outline" size={19} color="#fff" />
-                        <Text style={styles.uploadBtnText}>
-                          رفع {files.length === 1 ? 'ملف واحد' : `${files.length} ملفات`}
-                        </Text>
-                      </>
-                    )}
-                  </LinearGradient>
+                <TouchableOpacity style={styles.pickBtn} onPress={pickFiles} activeOpacity={0.82}>
+                  <Ionicons name="attach-outline" size={19} color={C.primary} />
+                  <Text style={styles.pickBtnText}>{files.length ? `تغيير الملفات (${files.length})` : 'اختيار ملفات'}</Text>
                 </TouchableOpacity>
-              )}
+
+                {files.length > 0 && (
+                  <TouchableOpacity style={styles.uploadBtn} onPress={uploadFiles} disabled={uploading} activeOpacity={0.88}>
+                    <LinearGradient colors={[C.primary, C.primaryDark]} style={styles.uploadBtnGrad}>
+                      {uploading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <>
+                          <Ionicons name="cloud-upload-outline" size={19} color="#fff" />
+                          <Text style={styles.uploadBtnText}>رفع {files.length === 1 ? 'ملف واحد' : `${files.length} ملفات`}</Text>
+                        </>
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </>
+        )}
+
+        <View style={styles.uploadsHeader}>
+          <Text style={styles.uploadsTitle}>الملفات المرفوعة</Text>
+          {uploads.length > 0 && (
+            <View style={styles.uploadCountBadge}>
+              <Text style={styles.uploadCountText}>{uploads.length}</Text>
             </View>
           )}
-        </>
-      )}
-
-      {/* Uploaded files list */}
-      <View style={styles.uploadsHeader}>
-        <Text style={styles.uploadsTitle}>الملفات المرفوعة</Text>
-        {uploads.length > 0 && (
-          <View style={styles.uploadCountBadge}>
-            <Text style={styles.uploadCountText}>{uploads.length}</Text>
-          </View>
-        )}
-      </View>
-
-      {uploads.length === 0 ? (
-        <View style={styles.emptyBox}>
-          <View style={styles.emptyIconWrap}>
-            <Ionicons name="folder-open-outline" size={30} color={C.muted} />
-          </View>
-          <Text style={styles.emptyTitle}>لا توجد ملفات بعد</Text>
-          <Text style={styles.emptySubtitle}>
-            {isPrincipal ? 'لا توجد ملفات مرفوعة لهذا المعيار' : 'ارفعي أول ملف لهذا المعيار من النموذج أعلاه'}
-          </Text>
         </View>
-      ) : (
-        uploads.map((u) => <UploadCard key={u.id} upload={u} />)
-      )}
 
-      <View style={{ height: 40 }} />
-    </ScrollView>
+        {uploads.length === 0 ? (
+          <View style={styles.emptyBox}>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="folder-open-outline" size={30} color={C.muted} />
+            </View>
+            <Text style={styles.emptyTitle}>لا توجد ملفات بعد</Text>
+            <Text style={styles.emptySubtitle}>{isPrincipal ? 'لا توجد ملفات مرفوعة لهذا المعيار' : 'ارفعي أول ملف لهذا المعيار من النموذج أعلاه'}</Text>
+          </View>
+        ) : (
+          uploads.map((u) => (
+            <UploadCard
+              key={u.id}
+              upload={u}
+              onPreview={() => openPreview(u)}
+              onDownload={() => downloadUpload(u)}
+            />
+          ))
+        )}
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+
+      <Modal visible={previewVisible} animationType="slide" onRequestClose={closePreview}>
+        <SafeAreaView style={styles.previewModalContainer}>
+          <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
+          <View style={styles.previewHeader}>
+            <TouchableOpacity style={styles.previewHeaderBtn} onPress={closePreview} activeOpacity={0.85}>
+              <Ionicons name="close-outline" size={26} color={C.text} />
+            </TouchableOpacity>
+
+            <Text numberOfLines={1} style={styles.previewHeaderTitle}>
+              {previewUpload ? resolveFileName(previewUpload) : 'معاينة الملف'}
+            </Text>
+
+            <TouchableOpacity style={styles.previewHeaderBtn} onPress={() => previewUpload && downloadUpload(previewUpload)} activeOpacity={0.85}>
+              <Ionicons name="download-outline" size={24} color={C.primary} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.previewBody}>
+            {previewUpload && getPreviewType(previewUpload) === 'image' ? (
+              <Image
+                source={{ uri: getPreviewUrl(previewUpload) }}
+                style={styles.previewImage}
+                resizeMode="contain"
+                onLoadStart={() => setPreviewLoading(true)}
+                onLoadEnd={() => setPreviewLoading(false)}
+              />
+            ) : previewUpload ? (
+              <WebView
+                source={{ uri: getPreviewUrl(previewUpload) }}
+                style={styles.previewWebView}
+                startInLoadingState
+                onLoadStart={() => setPreviewLoading(true)}
+                onLoadEnd={() => setPreviewLoading(false)}
+                renderLoading={() => (
+                  <View style={styles.previewLoadingOverlay}>
+                    <ActivityIndicator size="large" color={C.primary} />
+                    <Text style={styles.previewLoadingText}>جاري فتح المعاينة...</Text>
+                  </View>
+                )}
+              />
+            ) : null}
+
+            {previewLoading && (
+              <View style={styles.previewLoadingOverlay}>
+                <ActivityIndicator size="large" color={C.primary} />
+                <Text style={styles.previewLoadingText}>جاري فتح المعاينة...</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.previewFooter}>
+            <TouchableOpacity style={styles.previewDownloadMainBtn} activeOpacity={0.88} onPress={() => previewUpload && downloadUpload(previewUpload)}>
+              <LinearGradient colors={[C.primary, C.primaryDark]} style={styles.previewDownloadMainBtnGrad}>
+                <Ionicons name="download-outline" size={19} color="#fff" />
+                <Text style={styles.previewDownloadMainBtnText}>تحميل الملف</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+    </>
   );
 }
 
@@ -432,10 +561,30 @@ const styles = StyleSheet.create({
   uploaderChip: { flexDirection: 'row-reverse', alignItems: 'center', gap: 5, backgroundColor: C.primaryLight, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 99 },
   uploaderName: { color: C.primary, fontSize: 11, fontWeight: '700' },
   uploadDate: { color: C.subtle, fontSize: 11 },
+  uploadTitleRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10 },
+  uploadFileIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  uploadTitleTextWrap: { flex: 1, alignItems: 'flex-end' },
   uploadTitle: { color: C.text, fontSize: 15, fontWeight: '800', textAlign: 'right' },
-  uploadNotes: { color: C.muted, fontSize: 13, textAlign: 'right', marginTop: 4, lineHeight: 20 },
+  uploadFileName: { color: C.subtle, fontSize: 11, marginTop: 3, textAlign: 'right' },
+  uploadNotes: { color: C.muted, fontSize: 13, textAlign: 'right', marginTop: 8, lineHeight: 20 },
   uploadActions: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, padding: 12, paddingTop: 0 },
+  previewBtn: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, backgroundColor: '#EEF2FF', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9 },
+  previewText: { color: C.primary, fontSize: 13, fontWeight: '800' },
   downloadBtn: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, backgroundColor: C.primaryLight, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9 },
   downloadText: { color: C.primary, fontSize: 13, fontWeight: '800' },
-  deleteBtn: { width: 36, height: 36, borderRadius: 11, backgroundColor: C.redLight, alignItems: 'center', justifyContent: 'center' },
+
+  // Preview modal
+  previewModalContainer: { flex: 1, backgroundColor: C.surface },
+  previewHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.border, backgroundColor: C.surface },
+  previewHeaderBtn: { width: 42, height: 42, borderRadius: 14, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+  previewHeaderTitle: { flex: 1, color: C.text, fontSize: 15, fontWeight: '800', textAlign: 'center', marginHorizontal: 12 },
+  previewBody: { flex: 1, backgroundColor: '#F8FAFF' },
+  previewImage: { flex: 1, width: '100%', height: '100%', backgroundColor: C.surface },
+  previewWebView: { flex: 1, backgroundColor: C.surface },
+  previewLoadingOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.78)', alignItems: 'center', justifyContent: 'center' },
+  previewLoadingText: { marginTop: 10, color: C.muted, fontSize: 14, fontWeight: '700' },
+  previewFooter: { padding: 14, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.surface },
+  previewDownloadMainBtn: { borderRadius: 18, overflow: 'hidden' },
+  previewDownloadMainBtnGrad: { minHeight: 54, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  previewDownloadMainBtnText: { color: '#fff', fontSize: 16, fontWeight: '900' },
 });
