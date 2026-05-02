@@ -4,9 +4,14 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "mobile:sync": "cap sync android",
+        "mobile:open": "cap open android"
     },
     "dependencies": {
+        "@capacitor/android": "latest",
+        "@capacitor/cli": "latest",
+        "@capacitor/core": "latest",
         "@vitejs/plugin-react": "latest",
         "react": "latest",
         "react-dom": "latest"
