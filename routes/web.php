@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EvidenceItemController;
 use App\Http\Controllers\EvidenceUploadController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TeacherEvidenceController;
 use Illuminate\Support\Facades\Route;
@@ -55,6 +56,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'password.set'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
 
     Route::resource('teachers', TeacherController::class)->except(['show', 'create']);
 
