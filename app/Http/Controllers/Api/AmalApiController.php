@@ -76,14 +76,31 @@ class AmalApiController extends Controller
             ->values();
     }
 
-    private function publicUploadUrl(EvidenceUpload $upload): string
+    private function uploadFileName(EvidenceUpload $upload): string
     {
-        return url(Storage::disk('public')->url($upload->file_path));
+        return basename($upload->file_path ?: ('upload-' . $upload->id));
+    }
+
+    private function uploadPreviewUrl(EvidenceUpload $upload): string
+    {
+        return route('mobile.uploads.preview', [
+            'upload' => $upload->id,
+            'name' => $this->uploadFileName($upload),
+        ]);
+    }
+
+    private function uploadDownloadUrl(EvidenceUpload $upload): string
+    {
+        return route('mobile.uploads.download', [
+            'upload' => $upload->id,
+            'name' => $this->uploadFileName($upload),
+        ]);
     }
 
     private function uploadResource(EvidenceUpload $upload): array
     {
-        $publicUrl = $this->publicUploadUrl($upload);
+        $previewUrl = $this->uploadPreviewUrl($upload);
+        $downloadUrl = $this->uploadDownloadUrl($upload);
 
         return [
             'id' => $upload->id,
@@ -91,10 +108,10 @@ class AmalApiController extends Controller
             'notes' => $upload->notes,
             'file_type' => $upload->file_type,
             'file_path' => $upload->file_path,
-            'file_name' => basename($upload->file_path),
-            'public_url' => $publicUrl,
-            'preview_url' => $publicUrl,
-            'download_url' => $publicUrl,
+            'file_name' => $this->uploadFileName($upload),
+            'public_url' => $previewUrl,
+            'preview_url' => $previewUrl,
+            'download_url' => $downloadUrl,
             'created_at' => $upload->created_at?->format('Y-m-d H:i'),
             'evidence' => $upload->evidenceItem ? [
                 'id' => $upload->evidenceItem->id,
