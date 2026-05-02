@@ -34,18 +34,7 @@ jobs:
 
           normalize_plain_key() {
             local target="$1"
-            python3 - "$target" <<'PY'
-import pathlib
-import sys
-
-path = pathlib.Path(sys.argv[1])
-text = path.read_text()
-text = text.replace('\\r', '\r').replace('\\n', '\n')
-text = text.replace('\r\n', '\n').replace('\r', '\n')
-if not text.endswith('\n'):
-    text += '\n'
-path.write_text(text)
-PY
+            python3 -c 'import pathlib, sys; p=pathlib.Path(sys.argv[1]); text=p.read_text(); text=text.replace("\\\\r", "\r").replace("\\\\n", "\n"); text=text.replace("\r\n", "\n").replace("\r", "\n"); p.write_text(text if text.endswith("\n") else text + "\n")' "$target"
           }
 
           validate_key() {
