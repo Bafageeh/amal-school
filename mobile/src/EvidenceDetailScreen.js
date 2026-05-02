@@ -81,7 +81,11 @@ function getFileStyle(name = '') {
 }
 
 function resolveFileUrl(upload) {
-  return upload?.download_url || upload?.file_url || upload?.url || upload?.file?.url || null;
+  return upload?.preview_url || upload?.public_url || upload?.download_url || upload?.file_url || upload?.url || upload?.file?.url || null;
+}
+
+function resolveDownloadUrl(upload) {
+  return upload?.download_url || upload?.public_url || upload?.preview_url || upload?.file_url || upload?.url || upload?.file?.url || null;
 }
 
 function resolveFileName(upload) {
@@ -89,6 +93,13 @@ function resolveFileName(upload) {
 }
 
 function getFileExtension(upload) {
+  const mime = String(upload?.file_type || '').toLowerCase();
+  if (mime.includes('pdf')) return 'pdf';
+  if (mime.includes('image/jpeg')) return 'jpg';
+  if (mime.includes('image/png')) return 'png';
+  if (mime.includes('image/gif')) return 'gif';
+  if (mime.includes('image/webp')) return 'webp';
+
   const source = `${resolveFileName(upload)} ${resolveFileUrl(upload) || ''}`;
   const clean = source.split('?')[0].split('#')[0];
   const parts = clean.split('.');
@@ -97,8 +108,10 @@ function getFileExtension(upload) {
 
 function getPreviewType(upload) {
   const ext = getFileExtension(upload);
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) return 'image';
-  if (ext === 'pdf') return 'pdf';
+  const mime = String(upload?.file_type || '').toLowerCase();
+
+  if (mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) return 'image';
+  if (mime.includes('pdf') || ext === 'pdf') return 'pdf';
   if (['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'].includes(ext)) return 'office';
   return 'web';
 }
@@ -108,8 +121,13 @@ function getPreviewUrl(upload) {
   if (!fileUrl) return null;
 
   const type = getPreviewType(upload);
-  if (type === 'office' || type === 'pdf') {
-    return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(fileUrl)}`;
+
+  if (type === 'pdf') {
+    return `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(fileUrl)}`;
+  }
+
+  if (type === 'office') {
+    return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
   }
 
   return fileUrl;
@@ -270,7 +288,7 @@ export default function EvidenceDetailScreen({ token, evidence, onBack }) {
   }
 
   function downloadUpload(upload) {
-    const url = resolveFileUrl(upload);
+    const url = resolveDownloadUrl(upload);
     if (!url) {
       Alert.alert('تنبيه', 'رابط الملف غير متوفر');
       return;
