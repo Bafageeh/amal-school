@@ -111,7 +111,7 @@ jobs:
 
           echo "Using SSH user: $DEPLOY_USER"
 
-          PROJECT_PATH="/home/pmsa/apps/amal-school-api"
+          PROJECT_PATH="/home/pmsa/apps/amal-school/amal-school-api"
           echo "Deploying to: $PROJECT_PATH"
 
           ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH'"
