@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "Amal",
+    "name": "Amal Preview",
     "slug": "amal-school",
-    "scheme": "amal",
+    "scheme": "amalpreview",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#EEF4FF",
     "android": {
-      "package": "sa.pm.amal",
+      "package": "sa.pm.amal.preview",
       "adaptiveIcon": {
         "backgroundColor": "#0F172A"
       },
