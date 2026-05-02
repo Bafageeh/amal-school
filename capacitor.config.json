@@ -1,0 +1,12 @@
+{
+  "appId": "sa.pm.amal",
+  "appName": "Amal",
+  "webDir": "public/mobile-shell",
+  "server": {
+    "url": "https://amal.pm.sa",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
