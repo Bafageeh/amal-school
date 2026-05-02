@@ -17,25 +17,42 @@ class EvidenceUploadController extends Controller
         $data = $request->validate([
             'title' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
-            'file' => ['required', 'file', 'max:20480', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,ppt,pptx'],
+            'files' => ['required', 'array', 'min:1'],
+            'files.*' => ['required', 'file', 'max:20480', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,ppt,pptx'],
         ]);
 
-        $path = $request->file('file')->store(
-            'evidence/' . Auth::user()->school_id . '/' . $evidence->id,
-            'public'
-        );
+        $files = $request->file('files', []);
+        $filesCount = count($files);
 
-        EvidenceUpload::create([
-            'school_id' => Auth::user()->school_id,
-            'evidence_item_id' => $evidence->id,
-            'uploaded_by' => Auth::id(),
-            'title' => $data['title'] ?? $request->file('file')->getClientOriginalName(),
-            'notes' => $data['notes'] ?? null,
-            'file_path' => $path,
-            'file_type' => $request->file('file')->getClientMimeType(),
-        ]);
+        foreach ($files as $file) {
+            $path = $file->store(
+                'evidence/' . Auth::user()->school_id . '/' . $evidence->id,
+                'public'
+            );
 
-        return redirect()->route('evidence.show', $evidence)->with('success', 'تم رفع الملف بنجاح');
+            EvidenceUpload::create([
+                'school_id' => Auth::user()->school_id,
+                'evidence_item_id' => $evidence->id,
+                'uploaded_by' => Auth::id(),
+                'title' => $this->resolveUploadTitle($data['title'] ?? null, $file->getClientOriginalName(), $filesCount),
+                'notes' => $data['notes'] ?? null,
+                'file_path' => $path,
+                'file_type' => $file->getClientMimeType(),
+            ]);
+        }
+
+        return redirect()
+            ->route('evidence.show', $evidence)
+            ->with('success', $filesCount > 1 ? 'تم رفع الملفات بنجاح' : 'تم رفع الملف بنجاح');
+    }
+
+    private function resolveUploadTitle(?string $title, string $originalName, int $filesCount): string
+    {
+        if (blank($title)) {
+            return $originalName;
+        }
+
+        return $filesCount > 1 ? $title . ' - ' . $originalName : $title;
     }
 
     public function download(EvidenceUpload $upload)
