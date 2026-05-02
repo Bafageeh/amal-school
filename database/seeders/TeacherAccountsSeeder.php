@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 class TeacherAccountsSeeder extends Seeder
 {
@@ -37,11 +36,13 @@ class TeacherAccountsSeeder extends Seeder
         ];
 
         foreach ($teachers as $index => $name) {
-            $email = 'teacher'.str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT).'@teachers.local';
+            $number = str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT);
+            $username = 'teacher'.$number;
+            $email = $username.'@teachers.local';
 
             $payload = [
                 'name' => $name,
-                'username' => $name,
+                'username' => $username,
                 'email' => $email,
                 'password' => '',
                 'role' => 'teacher',
@@ -53,7 +54,7 @@ class TeacherAccountsSeeder extends Seeder
             }
 
             $existing = DB::table('users')
-                ->where('username', $name)
+                ->where('username', $username)
                 ->orWhere('email', $email)
                 ->first();
 
@@ -70,11 +71,11 @@ class TeacherAccountsSeeder extends Seeder
     private function getSchoolId(): ?int
     {
         if (! Schema::hasTable('schools')) {
-            return DB::table('users')->where('role', 'principal')->value('school_id');
+            return DB::table('users')->whereIn('username', ['admin', 'amal', 'امال', 'أمال', 'آمال'])->value('school_id');
         }
 
         $schoolId = DB::table('users')
-            ->where('role', 'principal')
+            ->whereIn('username', ['admin', 'amal', 'امال', 'أمال', 'آمال'])
             ->whereNotNull('school_id')
             ->value('school_id');
 
