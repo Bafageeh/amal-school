@@ -410,26 +410,130 @@ function EvidenceScreen({ evidence, onSelectEvidence }) {
 }
 
 // ─── Settings Screen ──────────────────────────────────────────────────────────
-function SettingsScreen({ user }) {
+function SettingsScreen({ user, onLogout }) {
   const isPrincipal = user?.is_principal;
+  const initials = user?.name?.charAt(0) || 'م';
 
   return (
     <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false}>
-      <Text style={styles.pageTitle}>الإعدادات</Text>
-      <Text style={styles.pageSubtitle}>إدارة المعلمات والحساب</Text>
 
-      {isPrincipal ? (
-        <View style={styles.listCard}>
-          <ActionRow icon="people-outline" title="المعلمات" subtitle="إضافة وتعديل حسابات المعلمات" accent={C.primary} />
-          <ActionRow icon="folder-open-outline" title="ملفات المعلمات" subtitle="متابعة ملفات كل معلمة" accent={C.gold} noBorder />
+      {/* Profile card */}
+      <LinearGradient colors={C.grad} style={styles.profileCard}>
+        <View style={styles.profileCardDecor1} />
+        <View style={styles.profileCardDecor2} />
+        <View style={styles.profileAvatarRow}>
+          <View style={styles.profileAvatarWrap}>
+            <View style={styles.profileAvatarRing}>
+              <View style={styles.profileAvatarInner}>
+                <Text style={styles.profileAvatarLetter}>{initials}</Text>
+              </View>
+            </View>
+            <View style={[styles.profileRoleDot, { backgroundColor: isPrincipal ? C.gold : C.green }]} />
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{user?.name}</Text>
+            <View style={styles.profileRolePill}>
+              <View style={[styles.profileRolePillDot, { backgroundColor: isPrincipal ? C.gold : C.green }]} />
+              <Text style={styles.profileRoleText}>{isPrincipal ? 'مديرة المدرسة' : 'معلمة'}</Text>
+            </View>
+          </View>
         </View>
-      ) : (
-        <View style={styles.listCard}>
-          <ActionRow icon="person-circle-outline" title="حسابي" subtitle="بيانات المعلمة وملفاتها" accent={C.primary} noBorder />
+        <View style={styles.profileDivider} />
+        <View style={styles.profileSchoolRow}>
+          <Ionicons name="business-outline" size={15} color="rgba(255,255,255,0.7)" />
+          <Text style={styles.profileSchoolName}>{user?.school?.name || 'مدرسة'}</Text>
         </View>
+      </LinearGradient>
+
+      {/* Principal sections */}
+      {isPrincipal && (
+        <>
+          <Text style={styles.settingsSectionLabel}>إدارة المدرسة</Text>
+          <View style={styles.listCard}>
+            <ActionRow
+              icon="people-outline"
+              title="المعلمات"
+              subtitle="إضافة وتعديل وحذف حسابات المعلمات"
+              accent={C.primary}
+            />
+            <ActionRow
+              icon="folder-open-outline"
+              title="متابعة ملفات المعلمات"
+              subtitle="استعراض ملفات كل معلمة حسب المعيار"
+              accent={C.gold}
+              noBorder
+            />
+          </View>
+
+          <Text style={styles.settingsSectionLabel}>التقارير</Text>
+          <View style={styles.listCard}>
+            <ActionRow
+              icon="stats-chart-outline"
+              title="إحصائيات الرفع"
+              subtitle="نسبة اكتمال ملفات كل معلمة"
+              accent={C.teal}
+            />
+            <ActionRow
+              icon="ribbon-outline"
+              title="المعايير المكتملة"
+              subtitle="المعايير التي اكتملت ملفاتها"
+              accent={C.green}
+              noBorder
+            />
+          </View>
+        </>
       )}
 
-      <View style={{ height: 24 }} />
+      {/* Teacher sections */}
+      {!isPrincipal && (
+        <>
+          <Text style={styles.settingsSectionLabel}>حسابي</Text>
+          <View style={styles.listCard}>
+            <ActionRow
+              icon="person-outline"
+              title="بياناتي الشخصية"
+              subtitle="الاسم واسم المستخدم"
+              accent={C.primary}
+            />
+            <ActionRow
+              icon="folder-outline"
+              title="ملفاتي المرفوعة"
+              subtitle="جميع الملفات التي رفعتِها"
+              accent={C.teal}
+              noBorder
+            />
+          </View>
+        </>
+      )}
+
+      {/* General */}
+      <Text style={styles.settingsSectionLabel}>عام</Text>
+      <View style={styles.listCard}>
+        <ActionRow
+          icon="help-circle-outline"
+          title="الدعم والمساعدة"
+          subtitle="تواصلي مع فريق الدعم"
+          accent={C.muted}
+        />
+        <View style={styles.appVersionRow}>
+          <Text style={styles.appVersionValue}>1.0.0</Text>
+          <View style={styles.appVersionText}>
+            <Text style={styles.appVersionTitle}>إصدار التطبيق</Text>
+            <Text style={styles.appVersionSub}>Amal School App</Text>
+          </View>
+          <View style={[styles.actionRowIcon, { backgroundColor: `${C.subtle}18` }]}>
+            <Ionicons name="information-circle-outline" size={20} color={C.subtle} />
+          </View>
+        </View>
+      </View>
+
+      {/* Logout */}
+      <TouchableOpacity style={styles.logoutBtn} onPress={onLogout} activeOpacity={0.85}>
+        <Ionicons name="log-out-outline" size={20} color={C.red} />
+        <Text style={styles.logoutText}>تسجيل الخروج</Text>
+      </TouchableOpacity>
+
+      <View style={{ height: 32 }} />
     </ScrollView>
   );
 }
@@ -507,7 +611,7 @@ function MainApp({ token, user, setUser, onLogout }) {
   const screen = useMemo(() => {
     if (loading) return <LoadingScreen />;
     if (tab === 'evidence') return <EvidenceScreen evidence={evidence} onSelectEvidence={setSelectedEvidence} />;
-    if (tab === 'settings') return <SettingsScreen user={user} />;
+    if (tab === 'settings') return <SettingsScreen user={user} onLogout={onLogout} />;
     return <HomeScreen user={user} dashboard={dashboard} setTab={setTab} />;
   }, [tab, loading, dashboard, evidence, user]);
 
@@ -665,6 +769,36 @@ const styles = StyleSheet.create({
   evidenceOpenText: { color: C.primary, fontSize: 13, fontWeight: '800' },
   evidenceProgressBar: { flex: 1, height: 5, backgroundColor: C.border, borderRadius: 99, overflow: 'hidden' },
   evidenceProgressFill: { height: '100%', backgroundColor: C.teal, borderRadius: 99 },
+
+  // Settings Screen
+  settingsSectionLabel: { color: C.muted, fontSize: 12, fontWeight: '800', textAlign: 'right', marginBottom: 8, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  profileCard: { borderRadius: 26, padding: 20, marginBottom: 22, overflow: 'hidden', position: 'relative' },
+  profileCardDecor1: { position: 'absolute', width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.055)', top: -40, left: -30 },
+  profileCardDecor2: { position: 'absolute', width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.065)', bottom: -20, right: 10 },
+  profileAvatarRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 16 },
+  profileAvatarWrap: { position: 'relative' },
+  profileAvatarRing: { width: 72, height: 72, borderRadius: 36, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.35)', alignItems: 'center', justifyContent: 'center' },
+  profileAvatarInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  profileAvatarLetter: { color: '#fff', fontSize: 30, fontWeight: '900' },
+  profileRoleDot: { position: 'absolute', bottom: 2, left: 2, width: 14, height: 14, borderRadius: 7, borderWidth: 2.5, borderColor: 'rgba(30,10,96,0.6)' },
+  profileInfo: { flex: 1, alignItems: 'flex-end', gap: 8 },
+  profileName: { color: '#fff', fontSize: 20, fontWeight: '900', textAlign: 'right' },
+  profileRolePill: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.14)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99 },
+  profileRolePillDot: { width: 7, height: 7, borderRadius: 4 },
+  profileRoleText: { color: 'rgba(255,255,255,0.88)', fontSize: 12, fontWeight: '700' },
+  profileDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 16 },
+  profileSchoolRow: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8 },
+  profileSchoolName: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '600', textAlign: 'right' },
+
+  appVersionRow: { flexDirection: 'row-reverse', alignItems: 'center', padding: 16, gap: 12 },
+  appVersionText: { flex: 1, alignItems: 'flex-end' },
+  appVersionTitle: { color: C.text, fontSize: 15, fontWeight: '800', textAlign: 'right' },
+  appVersionSub: { color: C.muted, fontSize: 12, textAlign: 'right', marginTop: 3 },
+  appVersionValue: { color: C.subtle, fontSize: 13, fontWeight: '700' },
+
+  logoutBtn: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#FEE2E2', borderRadius: 18, minHeight: 54, marginTop: 6, borderWidth: 1.5, borderColor: '#FECACA' },
+  logoutText: { color: C.red, fontSize: 16, fontWeight: '900' },
 
   // Bottom Nav
   bottomNavWrap: { paddingHorizontal: 16, paddingBottom: Platform.OS === 'ios' ? 8 : 14, paddingTop: 8, backgroundColor: C.bg },
