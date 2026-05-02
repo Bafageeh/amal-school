@@ -9,3 +9,301 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+@media (max-width: 980px) {
+    html,
+    body {
+        min-height: 100%;
+        background: linear-gradient(180deg, #eef4ff 0%, #f8fbff 46%, #eef4ff 100%) !important;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        overflow-x: hidden;
+    }
+
+    .mobile-appbar {
+        min-height: 76px !important;
+        padding: 12px 16px !important;
+        background: rgba(248, 251, 255, 0.94) !important;
+        backdrop-filter: blur(22px) !important;
+        box-shadow: 0 12px 34px rgba(15, 23, 42, 0.07) !important;
+    }
+
+    .mobile-logo {
+        width: 48px !important;
+        height: 48px !important;
+        border-radius: 18px !important;
+        background: linear-gradient(135deg, #2563eb 0%, #0f172a 100%) !important;
+        box-shadow: 0 14px 30px rgba(37, 99, 235, 0.26) !important;
+    }
+
+    .mobile-title-text strong {
+        font-size: 22px !important;
+        font-weight: 950 !important;
+        letter-spacing: -0.5px;
+    }
+
+    .mobile-title-text span {
+        font-size: 12px !important;
+        color: #64748b !important;
+    }
+
+    .mobile-role {
+        background: #dbeafe !important;
+        color: #1d4ed8 !important;
+        border: 1px solid rgba(37, 99, 235, 0.12) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.66) !important;
+    }
+
+    .page {
+        padding: 14px 14px 118px !important;
+    }
+
+    .hero-card {
+        position: relative !important;
+        overflow: hidden !important;
+        min-height: 178px !important;
+        padding: 22px !important;
+        border-radius: 34px !important;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 38%, #0f172a 100%) !important;
+        box-shadow: 0 18px 45px rgba(37, 99, 235, 0.20), 0 12px 24px rgba(15, 23, 42, 0.14) !important;
+    }
+
+    .hero-card::before {
+        content: '';
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.12);
+        right: -60px;
+        top: -80px;
+    }
+
+    .hero-card::after {
+        content: '';
+        position: absolute;
+        width: 130px;
+        height: 130px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.08);
+        left: -45px;
+        bottom: -55px;
+    }
+
+    .hero-card > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero-kicker {
+        display: inline-flex !important;
+        align-items: center !important;
+        min-height: 40px !important;
+        padding: 9px 15px !important;
+        border-radius: 999px !important;
+        background: rgba(255, 255, 255, 0.16) !important;
+        color: transparent !important;
+        font-size: 0 !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.18) !important;
+    }
+
+    .hero-kicker::after {
+        content: 'React Native + API';
+        color: #eff6ff;
+        font-size: 13px;
+        font-weight: 800;
+        letter-spacing: .1px;
+    }
+
+    .hero-card h1 {
+        margin-top: 24px !important;
+        font-size: 34px !important;
+        line-height: 1.3 !important;
+        letter-spacing: -0.8px !important;
+    }
+
+    .hero-card p {
+        margin-top: 10px !important;
+        font-size: 15.5px !important;
+        line-height: 1.9 !important;
+        color: #dbeafe !important;
+    }
+
+    .hero-badge {
+        min-height: 44px !important;
+        min-width: 0 !important;
+        width: fit-content !important;
+        margin-top: 18px !important;
+        padding: 10px 16px !important;
+        border-radius: 999px !important;
+        background: rgba(255,255,255,.16) !important;
+        color: #fff !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.16) !important;
+    }
+
+    .card,
+    .app-stat,
+    .upload-card,
+    .app-action-card,
+    .empty-state,
+    .alert {
+        border-radius: 28px !important;
+        background: rgba(255, 255, 255, 0.96) !important;
+        border: 1px solid rgba(226, 232, 240, 0.92) !important;
+        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.075) !important;
+    }
+
+    .card {
+        padding: 18px !important;
+    }
+
+    .card h3,
+    .section-heading h3 {
+        font-size: 21px !important;
+        font-weight: 950 !important;
+        color: #0f172a !important;
+        margin-bottom: 4px !important;
+    }
+
+    .app-stat {
+        min-height: 96px !important;
+        padding: 18px !important;
+        flex-direction: row-reverse !important;
+        justify-content: flex-start !important;
+    }
+
+    .app-stat-icon,
+    .app-action-icon,
+    .upload-file-icon {
+        width: 56px !important;
+        height: 56px !important;
+        min-width: 56px !important;
+        border-radius: 21px !important;
+        background: #dbeafe !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.65) !important;
+    }
+
+    .app-stat-label {
+        font-size: 13px !important;
+        color: #64748b !important;
+        text-align: right !important;
+    }
+
+    .app-stat-value {
+        font-size: 32px !important;
+        font-weight: 950 !important;
+        letter-spacing: -0.8px !important;
+        text-align: right !important;
+    }
+
+    .app-action-card,
+    .upload-card {
+        padding: 16px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .app-action-card {
+        min-height: 96px !important;
+        flex-direction: row-reverse !important;
+    }
+
+    .app-action-text,
+    .upload-card-main > div:last-child {
+        align-items: flex-end !important;
+        text-align: right !important;
+        width: 100% !important;
+    }
+
+    .app-action-text strong,
+    .upload-card strong {
+        font-size: 16.5px !important;
+        font-weight: 950 !important;
+        color: #0f172a !important;
+        line-height: 1.6 !important;
+    }
+
+    .app-action-text small,
+    .muted {
+        color: #64748b !important;
+        font-size: 12.5px !important;
+        line-height: 1.7 !important;
+    }
+
+    .upload-card-main {
+        flex-direction: row-reverse !important;
+        align-items: center !important;
+    }
+
+    .upload-card-footer {
+        border-top: 1px solid #eef2f7 !important;
+        padding-top: 12px !important;
+        margin-top: 14px !important;
+        gap: 10px !important;
+    }
+
+    .teacher-chip {
+        align-self: flex-end !important;
+        border-radius: 999px !important;
+        background: #eef2ff !important;
+        color: #3730a3 !important;
+        padding: 6px 11px !important;
+        font-weight: 800 !important;
+    }
+
+    input,
+    textarea,
+    select {
+        min-height: 54px !important;
+        border-radius: 21px !important;
+        background: #f8fafc !important;
+        border-color: #e2e8f0 !important;
+        font-size: 15px !important;
+    }
+
+    .btn {
+        min-height: 52px !important;
+        border-radius: 21px !important;
+        font-size: 15px !important;
+        font-weight: 950 !important;
+        box-shadow: 0 12px 22px rgba(37,99,235,.14) !important;
+    }
+
+    .btn.light {
+        background: #eff6ff !important;
+        color: #2563eb !important;
+        box-shadow: none !important;
+    }
+
+    .btn.gray {
+        background: #e2e8f0 !important;
+        color: #0f172a !important;
+        box-shadow: none !important;
+    }
+
+    .bottom-tabs,
+    .react-bottom-tabs {
+        width: calc(100% - 24px) !important;
+        min-height: 78px !important;
+        padding: 8px !important;
+        border-radius: 30px !important;
+        background: #0f172a !important;
+        box-shadow: 0 18px 42px rgba(15, 23, 42, 0.30) !important;
+        border: 1px solid rgba(255,255,255,.08) !important;
+    }
+
+    .bottom-tabs a,
+    .react-bottom-tab {
+        border-radius: 23px !important;
+        color: #cbd5e1 !important;
+        font-weight: 950 !important;
+    }
+
+    .bottom-tabs a.active,
+    .react-bottom-tab.active {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        box-shadow: 0 10px 22px rgba(255,255,255,.10) !important;
+    }
+}
