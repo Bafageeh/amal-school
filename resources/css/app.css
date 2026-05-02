@@ -14,96 +14,128 @@
     html,
     body {
         min-height: 100%;
-        background: linear-gradient(180deg, #eef4ff 0%, #f8fbff 46%, #eef4ff 100%) !important;
+        background: #eef4ff !important;
         -webkit-tap-highlight-color: transparent;
     }
 
     body {
         overflow-x: hidden;
+        padding-bottom: 116px !important;
     }
 
     .mobile-appbar {
-        min-height: 76px !important;
-        padding: 12px 16px !important;
-        background: rgba(248, 251, 255, 0.94) !important;
-        backdrop-filter: blur(22px) !important;
-        box-shadow: 0 12px 34px rgba(15, 23, 42, 0.07) !important;
+        min-height: 78px !important;
+        padding: 13px 18px !important;
+        background: #f8fbff !important;
+        backdrop-filter: none !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        box-shadow: none !important;
+    }
+
+    .mobile-app-title {
+        flex-direction: row-reverse !important;
+        gap: 12px !important;
     }
 
     .mobile-logo {
-        width: 48px !important;
-        height: 48px !important;
+        width: 50px !important;
+        height: 50px !important;
         border-radius: 18px !important;
         background: linear-gradient(135deg, #2563eb 0%, #0f172a 100%) !important;
-        box-shadow: 0 14px 30px rgba(37, 99, 235, 0.26) !important;
+        box-shadow: 0 12px 28px rgba(37, 99, 235, 0.25) !important;
+        font-size: 22px !important;
     }
 
     .mobile-title-text strong {
-        font-size: 22px !important;
+        font-size: 23px !important;
         font-weight: 950 !important;
-        letter-spacing: -0.5px;
+        line-height: 1.1 !important;
     }
 
     .mobile-title-text span {
-        font-size: 12px !important;
+        font-size: 12.5px !important;
         color: #64748b !important;
+        margin-top: 5px !important;
     }
 
     .mobile-role {
+        min-height: 42px !important;
+        padding: 9px 14px !important;
+        border-radius: 999px !important;
         background: #dbeafe !important;
         color: #1d4ed8 !important;
-        border: 1px solid rgba(37, 99, 235, 0.12) !important;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.66) !important;
+        border: 1px solid #bfdbfe !important;
+        font-weight: 950 !important;
     }
 
     .page {
-        padding: 14px 14px 118px !important;
+        padding: 16px 16px 124px !important;
+        background: linear-gradient(180deg, #eef4ff 0%, #f8fbff 52%, #eef4ff 100%) !important;
+    }
+
+    .content {
+        max-width: 520px !important;
+        margin: 0 auto !important;
+    }
+
+    .react-settings,
+    .react-dashboard,
+    .react-evidence-index,
+    .react-teachers,
+    .react-teacher-evidence-index,
+    .react-teacher-criteria,
+    .react-teacher-uploads,
+    .react-evidence-show {
+        display: grid !important;
+        gap: 14px !important;
     }
 
     .hero-card {
         position: relative !important;
+        display: block !important;
         overflow: hidden !important;
-        min-height: 178px !important;
+        min-height: 176px !important;
         padding: 22px !important;
-        border-radius: 34px !important;
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 38%, #0f172a 100%) !important;
-        box-shadow: 0 18px 45px rgba(37, 99, 235, 0.20), 0 12px 24px rgba(15, 23, 42, 0.14) !important;
+        border-radius: 32px !important;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 42%, #0f172a 100%) !important;
+        box-shadow: 0 16px 38px rgba(37, 99, 235, 0.25) !important;
+        border: 0 !important;
+        margin-bottom: 0 !important;
     }
 
     .hero-card::before {
         content: '';
         position: absolute;
-        width: 180px;
-        height: 180px;
+        width: 190px;
+        height: 190px;
         border-radius: 999px;
-        background: rgba(255,255,255,.12);
-        right: -60px;
-        top: -80px;
+        background: rgba(255, 255, 255, .13);
+        right: -55px;
+        top: -75px;
     }
 
     .hero-card::after {
         content: '';
         position: absolute;
-        width: 130px;
-        height: 130px;
+        width: 150px;
+        height: 150px;
         border-radius: 999px;
-        background: rgba(255,255,255,.08);
-        left: -45px;
-        bottom: -55px;
+        background: rgba(255, 255, 255, .08);
+        left: -55px;
+        bottom: -65px;
     }
 
     .hero-card > * {
-        position: relative;
-        z-index: 1;
+        position: relative !important;
+        z-index: 1 !important;
     }
 
     .hero-kicker {
-        display: inline-flex !important;
-        align-items: center !important;
-        min-height: 40px !important;
-        padding: 9px 15px !important;
+        float: left !important;
+        min-height: 42px !important;
+        padding: 10px 16px !important;
         border-radius: 999px !important;
-        background: rgba(255, 255, 255, 0.16) !important;
+        background: rgba(255, 255, 255, .18) !important;
         color: transparent !important;
         font-size: 0 !important;
         box-shadow: inset 0 1px 0 rgba(255,255,255,.18) !important;
@@ -112,66 +144,97 @@
     .hero-kicker::after {
         content: 'React Native + API';
         color: #eff6ff;
-        font-size: 13px;
-        font-weight: 800;
-        letter-spacing: .1px;
+        font-size: 13.5px;
+        font-weight: 950;
     }
 
     .hero-card h1 {
-        margin-top: 24px !important;
+        clear: both !important;
+        padding-top: 26px !important;
+        margin: 0 !important;
         font-size: 34px !important;
-        line-height: 1.3 !important;
-        letter-spacing: -0.8px !important;
+        line-height: 1.25 !important;
+        font-weight: 950 !important;
+        letter-spacing: -1px !important;
+        text-align: right !important;
     }
 
     .hero-card p {
-        margin-top: 10px !important;
+        margin-top: 12px !important;
         font-size: 15.5px !important;
         line-height: 1.9 !important;
         color: #dbeafe !important;
+        text-align: right !important;
     }
 
     .hero-badge {
-        min-height: 44px !important;
+        float: left !important;
         min-width: 0 !important;
-        width: fit-content !important;
+        min-height: 0 !important;
         margin-top: 18px !important;
-        padding: 10px 16px !important;
+        padding: 11px 15px !important;
         border-radius: 999px !important;
-        background: rgba(255,255,255,.16) !important;
+        background: rgba(255, 255, 255, .18) !important;
         color: #fff !important;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.16) !important;
+        font-weight: 950 !important;
     }
 
     .card,
-    .app-stat,
-    .upload-card,
-    .app-action-card,
-    .empty-state,
-    .alert {
-        border-radius: 28px !important;
-        background: rgba(255, 255, 255, 0.96) !important;
-        border: 1px solid rgba(226, 232, 240, 0.92) !important;
-        box-shadow: 0 14px 30px rgba(15, 23, 42, 0.075) !important;
+    .app-section-card {
+        padding: 0 !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        margin: 0 !important;
     }
 
-    .card {
-        padding: 18px !important;
-    }
-
-    .card h3,
+    .card > h3,
     .section-heading h3 {
-        font-size: 21px !important;
+        padding: 0 4px !important;
+        font-size: 22px !important;
         font-weight: 950 !important;
         color: #0f172a !important;
-        margin-bottom: 4px !important;
+        text-align: right !important;
+    }
+
+    .card > .muted,
+    .section-heading .muted,
+    .section-heading p {
+        padding: 0 4px !important;
+        color: #64748b !important;
+        text-align: right !important;
+        font-size: 13px !important;
+    }
+
+    .section-heading {
+        display: block !important;
+        margin: 0 0 4px !important;
+    }
+
+    .app-stats-grid,
+    .app-actions-grid,
+    .uploads-list {
+        gap: 12px !important;
+        margin: 0 !important;
+    }
+
+    .app-stat,
+    .app-action-card,
+    .upload-card,
+    .empty-state,
+    .alert {
+        border-radius: 26px !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 12px 28px rgba(15, 23, 42, .07) !important;
     }
 
     .app-stat {
-        min-height: 96px !important;
-        padding: 18px !important;
+        min-height: 92px !important;
+        padding: 16px !important;
         flex-direction: row-reverse !important;
         justify-content: flex-start !important;
+        gap: 13px !important;
     }
 
     .app-stat-icon,
@@ -180,33 +243,35 @@
         width: 56px !important;
         height: 56px !important;
         min-width: 56px !important;
-        border-radius: 21px !important;
+        border-radius: 20px !important;
         background: #dbeafe !important;
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.65) !important;
+        display: grid !important;
+        place-items: center !important;
+        font-size: 25px !important;
     }
 
-    .app-stat-label {
-        font-size: 13px !important;
+    .app-stat-label,
+    .muted {
         color: #64748b !important;
+        font-size: 12.5px !important;
+        line-height: 1.75 !important;
         text-align: right !important;
     }
 
     .app-stat-value {
-        font-size: 32px !important;
+        color: #0f172a !important;
+        font-size: 31px !important;
         font-weight: 950 !important;
-        letter-spacing: -0.8px !important;
         text-align: right !important;
     }
 
     .app-action-card,
     .upload-card {
-        padding: 16px !important;
-        margin-bottom: 10px !important;
-    }
-
-    .app-action-card {
         min-height: 96px !important;
+        padding: 16px !important;
+        margin: 0 !important;
         flex-direction: row-reverse !important;
+        align-items: center !important;
     }
 
     .app-action-text,
@@ -218,28 +283,35 @@
 
     .app-action-text strong,
     .upload-card strong {
-        font-size: 16.5px !important;
-        font-weight: 950 !important;
+        display: block !important;
         color: #0f172a !important;
-        line-height: 1.6 !important;
+        font-size: 16.5px !important;
+        line-height: 1.65 !important;
+        font-weight: 950 !important;
+        text-align: right !important;
     }
 
-    .app-action-text small,
-    .muted {
+    .app-action-text small {
         color: #64748b !important;
         font-size: 12.5px !important;
         line-height: 1.7 !important;
+        text-align: right !important;
     }
 
     .upload-card-main {
+        display: flex !important;
         flex-direction: row-reverse !important;
         align-items: center !important;
+        gap: 13px !important;
     }
 
     .upload-card-footer {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
         border-top: 1px solid #eef2f7 !important;
-        padding-top: 12px !important;
         margin-top: 14px !important;
+        padding-top: 12px !important;
         gap: 10px !important;
     }
 
@@ -249,54 +321,65 @@
         background: #eef2ff !important;
         color: #3730a3 !important;
         padding: 6px 11px !important;
-        font-weight: 800 !important;
+        font-size: 12px !important;
+        font-weight: 900 !important;
     }
 
     input,
     textarea,
     select {
         min-height: 54px !important;
-        border-radius: 21px !important;
-        background: #f8fafc !important;
-        border-color: #e2e8f0 !important;
+        border-radius: 20px !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
         font-size: 15px !important;
+    }
+
+    label {
+        text-align: right !important;
+        color: #0f172a !important;
+        font-weight: 950 !important;
+    }
+
+    .actions {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+        width: 100% !important;
     }
 
     .btn {
+        width: 100% !important;
         min-height: 52px !important;
-        border-radius: 21px !important;
+        border-radius: 20px !important;
         font-size: 15px !important;
         font-weight: 950 !important;
-        box-shadow: 0 12px 22px rgba(37,99,235,.14) !important;
+        box-shadow: none !important;
     }
 
-    .btn.light {
+    .btn.light,
+    .btn.gray {
         background: #eff6ff !important;
         color: #2563eb !important;
-        box-shadow: none !important;
-    }
-
-    .btn.gray {
-        background: #e2e8f0 !important;
-        color: #0f172a !important;
-        box-shadow: none !important;
     }
 
     .bottom-tabs,
     .react-bottom-tabs {
         width: calc(100% - 24px) !important;
+        max-width: 520px !important;
         min-height: 78px !important;
         padding: 8px !important;
         border-radius: 30px !important;
         background: #0f172a !important;
-        box-shadow: 0 18px 42px rgba(15, 23, 42, 0.30) !important;
         border: 1px solid rgba(255,255,255,.08) !important;
+        box-shadow: 0 18px 42px rgba(15, 23, 42, .30) !important;
     }
 
     .bottom-tabs a,
     .react-bottom-tab {
         border-radius: 23px !important;
         color: #cbd5e1 !important;
+        font-size: 11px !important;
         font-weight: 950 !important;
     }
 
@@ -304,6 +387,6 @@
     .react-bottom-tab.active {
         background: #ffffff !important;
         color: #0f172a !important;
-        box-shadow: 0 10px 22px rgba(255,255,255,.10) !important;
+        box-shadow: none !important;
     }
 }
