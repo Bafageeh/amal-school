@@ -68,7 +68,7 @@ class EvidenceUploadController extends Controller
         return $filesCount > 1 ? $title . ' - ' . $originalName : $title;
     }
 
-    public function download(EvidenceUpload $upload)
+    private function authorizeUpload(EvidenceUpload $upload): void
     {
         $user = Auth::user();
 
@@ -77,19 +77,35 @@ class EvidenceUploadController extends Controller
         if ($user->isTeacher()) {
             abort_unless($upload->uploaded_by === $user->id, 403);
         }
+    }
+
+    public function preview(EvidenceUpload $upload)
+    {
+        $this->authorizeUpload($upload);
+
+        abort_unless(Storage::disk('public')->exists($upload->file_path), 404);
+
+        $absolutePath = Storage::disk('public')->path($upload->file_path);
+        $fileName = basename($upload->file_path);
+        $mimeType = $upload->file_type ?: (mime_content_type($absolutePath) ?: 'application/octet-stream');
+
+        return response()->file($absolutePath, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . addslashes($fileName) . '"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    public function download(EvidenceUpload $upload)
+    {
+        $this->authorizeUpload($upload);
 
         return Storage::disk('public')->download($upload->file_path);
     }
 
     public function destroy(EvidenceUpload $upload)
     {
-        $user = Auth::user();
-
-        abort_unless($upload->school_id === $user->school_id, 404);
-
-        if ($user->isTeacher()) {
-            abort_unless($upload->uploaded_by === $user->id, 403);
-        }
+        $this->authorizeUpload($upload);
 
         Storage::disk('public')->delete($upload->file_path);
         $upload->delete();
