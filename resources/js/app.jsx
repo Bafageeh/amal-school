@@ -199,13 +199,8 @@ function DashboardApp() {
         };
     }, []);
 
-    if (state.loading) {
-        return <LoadingCard />;
-    }
-
-    if (state.error) {
-        return <ErrorCard message={state.error} />;
-    }
+    if (state.loading) return <LoadingCard />;
+    if (state.error) return <ErrorCard message={state.error} />;
 
     return (
         <DashboardContent
@@ -213,6 +208,96 @@ function DashboardApp() {
             stats={state.dashboard.stats}
             latestUploads={state.dashboard.latest_uploads || []}
         />
+    );
+}
+
+function EvidenceCard({ item }) {
+    return (
+        <div className="upload-card">
+            <div className="upload-card-main">
+                <div className="upload-file-icon">✅</div>
+                <div>
+                    <strong>{item.title}</strong>
+                    <div className="muted">{item.description || 'لا يوجد وصف لهذا المعيار.'}</div>
+                    <div className="teacher-chip">عدد الملفات: {item.uploads_count ?? 0}</div>
+                </div>
+            </div>
+            <div className="upload-card-footer">
+                <span>{item.created_at || ''}</span>
+                <a className="btn" href={`/evidence/${item.id}`}>فتح المعيار</a>
+            </div>
+        </div>
+    );
+}
+
+function EvidenceIndexApp() {
+    const [state, setState] = useState({ loading: true, error: null, user: null, items: [] });
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadEvidence() {
+            try {
+                const [me, evidence] = await Promise.all([
+                    apiGet('/api/v1/me'),
+                    apiGet('/api/v1/evidence'),
+                ]);
+
+                if (!cancelled) {
+                    setState({ loading: false, error: null, user: me.user, items: evidence.items || [] });
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    setState({ loading: false, error: error.message, user: null, items: [] });
+                }
+            }
+        }
+
+        loadEvidence();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    if (state.loading) return <LoadingCard />;
+    if (state.error) return <ErrorCard message={state.error} />;
+
+    const isPrincipal = state.user?.role === 'principal';
+
+    return (
+        <div className="react-evidence-index">
+            <section className="hero-card">
+                <div>
+                    <span className="hero-kicker">React + API</span>
+                    <h1>معايير التقييم</h1>
+                    <p>هذه الشاشة تقرأ قائمة المعايير من Laravel API مباشرة.</p>
+                </div>
+                <div className="hero-badge">✅</div>
+            </section>
+
+            <section className="card app-section-card">
+                <div className="section-heading">
+                    <div>
+                        <h3>قائمة المعايير</h3>
+                        <p className="muted">اختاري معيارًا لعرض الملفات أو رفع ملفات جديدة.</p>
+                    </div>
+                    {isPrincipal && <a className="btn green" href="/evidence/create">إضافة معيار تقييم</a>}
+                </div>
+
+                {state.items.length ? (
+                    <div className="uploads-list">
+                        {state.items.map((item) => <EvidenceCard key={item.id} item={item} />)}
+                    </div>
+                ) : (
+                    <div className="empty-state">
+                        <div className="empty-icon">✅</div>
+                        <strong>لا توجد معايير تقييم حتى الآن</strong>
+                        <span>يمكن للمديرة إضافة معايير جديدة من زر الإضافة.</span>
+                    </div>
+                )}
+            </section>
+        </div>
     );
 }
 
@@ -255,17 +340,12 @@ function getIconForTab(label, href) {
 function isActiveTab(href) {
     const currentPath = window.location.pathname.replace(/\/$/, '') || '/';
     const linkPath = new URL(href, window.location.origin).pathname.replace(/\/$/, '') || '/';
-
-    if (linkPath === '/dashboard') {
-        return currentPath === '/dashboard' || currentPath === '/';
-    }
-
+    if (linkPath === '/dashboard') return currentPath === '/dashboard' || currentPath === '/';
     return currentPath === linkPath || currentPath.startsWith(`${linkPath}/`);
 }
 
 function readTabsFromSidebar() {
     normalizePrincipalSidebar();
-
     return Array.from(document.querySelectorAll('.sidebar .nav a'))
         .map((link) => ({
             label: link.textContent.trim(),
@@ -279,7 +359,6 @@ function readTabsFromSidebar() {
 
 function BottomTabs({ tabs }) {
     if (!tabs.length) return null;
-
     return (
         <nav className="react-bottom-tabs" aria-label="تبويب التنقل السفلي">
             {tabs.map((tab) => (
@@ -294,66 +373,16 @@ function BottomTabs({ tabs }) {
 
 function injectBottomTabsStyle() {
     if (document.getElementById('react-bottom-tabs-style')) return;
-
     const style = document.createElement('style');
     style.id = 'react-bottom-tabs-style';
     style.textContent = `
-        .react-bottom-tabs {
-            position: fixed;
-            left: 50%;
-            bottom: max(12px, env(safe-area-inset-bottom));
-            transform: translateX(-50%);
-            z-index: 9999;
-            width: min(560px, calc(100% - 24px));
-            min-height: 72px;
-            padding: 8px;
-            display: grid;
-            grid-template-columns: repeat(var(--tabs-count, 4), minmax(0, 1fr));
-            gap: 6px;
-            background: rgba(15, 23, 42, .88);
-            border: 1px solid rgba(255, 255, 255, .14);
-            border-radius: 26px;
-            box-shadow: 0 18px 45px rgba(15, 23, 42, .24);
-            backdrop-filter: blur(18px);
-            direction: rtl;
-        }
-        .react-bottom-tab {
-            min-width: 0;
-            display: grid;
-            place-items: center;
-            gap: 4px;
-            padding: 8px 6px;
-            border-radius: 20px;
-            color: #cbd5e1;
-            text-decoration: none;
-            font-family: Tahoma, Arial, sans-serif;
-            font-size: 11px;
-            line-height: 1.2;
-            transition: .18s ease;
-        }
-        .react-bottom-tab:hover,
-        .react-bottom-tab.active {
-            background: #ffffff;
-            color: #0f172a;
-            transform: translateY(-2px);
-        }
-        .react-bottom-tab-icon {
-            font-size: 21px;
-            line-height: 1;
-        }
-        .react-bottom-tab-label {
-            width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            text-align: center;
-            font-weight: 800;
-        }
+        .react-bottom-tabs { position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 9999; width: min(560px, calc(100% - 24px)); min-height: 72px; padding: 8px; display: grid; grid-template-columns: repeat(var(--tabs-count, 4), minmax(0, 1fr)); gap: 6px; background: rgba(15, 23, 42, .88); border: 1px solid rgba(255, 255, 255, .14); border-radius: 26px; box-shadow: 0 18px 45px rgba(15, 23, 42, .24); backdrop-filter: blur(18px); direction: rtl; }
+        .react-bottom-tab { min-width: 0; display: grid; place-items: center; gap: 4px; padding: 8px 6px; border-radius: 20px; color: #cbd5e1; text-decoration: none; font-family: Tahoma, Arial, sans-serif; font-size: 11px; line-height: 1.2; transition: .18s ease; }
+        .react-bottom-tab:hover, .react-bottom-tab.active { background: #ffffff; color: #0f172a; transform: translateY(-2px); }
+        .react-bottom-tab-icon { font-size: 21px; line-height: 1; }
+        .react-bottom-tab-label { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; font-weight: 800; }
         body { padding-bottom: 94px; }
-        @media (min-width: 981px) {
-            .react-bottom-tabs { display: none; }
-            body { padding-bottom: 0; }
-        }
+        @media (min-width: 981px) { .react-bottom-tabs { display: none; } body { padding-bottom: 0; } }
     `;
     document.head.appendChild(style);
 }
@@ -361,9 +390,7 @@ function injectBottomTabsStyle() {
 function mountBottomTabs() {
     const tabs = readTabsFromSidebar();
     if (!tabs.length || document.getElementById('react-bottom-tabs-root')) return;
-
     injectBottomTabsStyle();
-
     const rootElement = document.createElement('div');
     rootElement.id = 'react-bottom-tabs-root';
     rootElement.style.setProperty('--tabs-count', String(tabs.length));
@@ -376,6 +403,10 @@ function mountReactApps() {
 
     document.querySelectorAll('[data-react-app="dashboard"]').forEach((element) => {
         createRoot(element).render(<DashboardApp />);
+    });
+
+    document.querySelectorAll('[data-react-app="evidence-index"]').forEach((element) => {
+        createRoot(element).render(<EvidenceIndexApp />);
     });
 
     mountBottomTabs();
