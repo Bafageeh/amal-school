@@ -1,4 +1,4 @@
-name: Android
+name: Android React Native
 
 on:
   workflow_dispatch:
@@ -6,9 +6,7 @@ on:
     branches:
       - main
     paths:
-      - 'package.json'
-      - 'capacitor.config.json'
-      - 'public/mobile-shell/**'
+      - 'mobile/**'
       - '.github/workflows/android.yml'
 
 jobs:
@@ -23,11 +21,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --no-audit --no-fund
-      - run: npx cap add android
-      - run: npx cap sync android
-      - run: cd android && ./gradlew assembleDebug
+      - name: Install Expo app dependencies
+        working-directory: mobile
+        run: npm install --no-audit --no-fund
+      - name: Prebuild Android project
+        working-directory: mobile
+        run: npx expo prebuild --platform android --clean --non-interactive
+      - name: Build debug APK
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: amal-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: amal-react-native-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
