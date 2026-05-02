@@ -6,6 +6,11 @@
         "build": "vite build",
         "dev": "vite"
     },
+    "dependencies": {
+        "@vitejs/plugin-react": "latest",
+        "react": "latest",
+        "react-dom": "latest"
+    },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
         "concurrently": "^9.0.1",

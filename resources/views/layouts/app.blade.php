@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <title>{{ config('app.name', 'إدارة مدرسية') }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111827">
+    <link rel="manifest" href="{{ route('pwa.manifest') }}">
+    <link rel="apple-touch-icon" href="{{ route('pwa.icon') }}">
+    @vite(['resources/css/app.css', 'resources/js/app.jsx'])
 
     <style>
         * { box-sizing: border-box; }
@@ -73,6 +77,7 @@
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 16px;
+            margin-bottom: 18px;
         }
         .stat {
             background: #fff;

@@ -8,6 +8,36 @@ use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TeacherEvidenceController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/manifest.webmanifest', function () {
+    return response()->json([
+        'name' => 'Amal School',
+        'short_name' => 'Amal',
+        'start_url' => '/dashboard',
+        'scope' => '/',
+        'display' => 'standalone',
+        'background_color' => '#f4f6f8',
+        'theme_color' => '#111827',
+        'dir' => 'rtl',
+        'lang' => 'ar',
+        'icons' => [
+            [
+                'src' => '/amal-icon.svg',
+                'sizes' => 'any',
+                'type' => 'image/svg+xml',
+                'purpose' => 'any maskable',
+            ],
+        ],
+    ])->header('Content-Type', 'application/manifest+json');
+})->name('pwa.manifest');
+
+Route::get('/service-worker.js', function () {
+    return response("self.addEventListener('install',event=>self.skipWaiting());self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));self.addEventListener('fetch',event=>{});", 200, ['Content-Type' => 'application/javascript']);
+});
+
+Route::get('/amal-icon.svg', function () {
+    return response('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="110" fill="#111827"/><text x="256" y="304" text-anchor="middle" font-size="160" font-family="Arial" font-weight="700" fill="#ffffff">A</text></svg>', 200, ['Content-Type' => 'image/svg+xml']);
+})->name('pwa.icon');
+
 Route::get('/', function () {
     return auth()->check()
         ? redirect()->route('dashboard')
