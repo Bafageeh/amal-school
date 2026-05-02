@@ -189,6 +189,30 @@ jobs:
             -e "ssh $SSH_OPTS" \
             ./ "$DEPLOY_USER@$SSH_HOST:$PROJECT_PATH/"
 
+      - name: Patch deployed mobile settings screen
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          SSH_PORT="${SSH_PORT:-22}"
+          KEY_FILE="$HOME/.ssh/amal_github_actions"
+          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
+
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "python3 - <<'PY'
+from pathlib import Path
+p = Path('$PROJECT_PATH/mobile/App.js')
+text = p.read_text()
+old = '''          <Text style={styles.settingsSectionLabel}>التقارير</Text>
+          <View style={styles.listCard}>
+            <ActionRow icon=\"stats-chart-outline\" title=\"إحصائيات الرفع\" subtitle=\"نسبة اكتمال ملفات كل معلمة\" accent={C.teal} />
+            <ActionRow icon=\"ribbon-outline\" title=\"المعايير المكتملة\" subtitle=\"المعايير التي اكتملت ملفاتها\" accent={C.green} noBorder />
+          </View>
+'''
+text = text.replace(old, '')
+p.write_text(text)
+PY"
+
       - name: Run Laravel production commands
         env:
           SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
