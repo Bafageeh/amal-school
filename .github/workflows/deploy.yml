@@ -111,10 +111,7 @@ jobs:
 
           echo "Using SSH user: $DEPLOY_USER"
 
-          PRIMARY_PATH="/mnt/home-storage/home/pmsa/apps/amal-school-api"
-          FALLBACK_PATH="/mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api"
-          PROJECT_PATH=$(ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "if [ -d '$PRIMARY_PATH' ]; then echo '$PRIMARY_PATH'; else echo '$FALLBACK_PATH'; fi")
-
+          PROJECT_PATH="/home/pmsa/apps/amal-school-api"
           echo "Deploying to: $PROJECT_PATH"
 
           ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH'"
