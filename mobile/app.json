@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Amal",
+    "slug": "amal-school",
+    "scheme": "amal",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#EEF4FF",
+    "android": {
+      "package": "sa.pm.amal",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F172A"
+      },
+      "permissions": [
+        "INTERNET"
+      ]
+    },
+    "extra": {
+      "apiBaseUrl": "https://amal.pm.sa"
+    }
+  }
+}
