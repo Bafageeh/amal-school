@@ -79,10 +79,8 @@ class EvidenceUploadController extends Controller
         }
     }
 
-    public function preview(EvidenceUpload $upload)
+    private function inlineFileResponse(EvidenceUpload $upload)
     {
-        $this->authorizeUpload($upload);
-
         abort_unless(Storage::disk('public')->exists($upload->file_path), 404);
 
         $absolutePath = Storage::disk('public')->path($upload->file_path);
@@ -93,13 +91,32 @@ class EvidenceUploadController extends Controller
             'Content-Type' => $mimeType,
             'Content-Disposition' => 'inline; filename="' . addslashes($fileName) . '"',
             'X-Content-Type-Options' => 'nosniff',
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Content-Type, Range',
         ]);
+    }
+
+    public function preview(EvidenceUpload $upload)
+    {
+        $this->authorizeUpload($upload);
+        return $this->inlineFileResponse($upload);
+    }
+
+    public function mobilePreview(EvidenceUpload $upload, ?string $name = null)
+    {
+        return $this->inlineFileResponse($upload);
     }
 
     public function download(EvidenceUpload $upload)
     {
         $this->authorizeUpload($upload);
 
+        return Storage::disk('public')->download($upload->file_path);
+    }
+
+    public function mobileDownload(EvidenceUpload $upload, ?string $name = null)
+    {
         return Storage::disk('public')->download($upload->file_path);
     }
 
