@@ -24,6 +24,7 @@
     "react-native-screens": "~4.23.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.2"
+    "@babel/core": "^7.25.2",
+    "babel-preset-expo": "^13.2.3"
   }
 }
