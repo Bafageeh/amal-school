@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -14,15 +15,35 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
+import EvidenceDetailScreen from './src/EvidenceDetailScreen';
 
 const API_BASE_URL = 'https://amal.pm.sa/mobile-api/v1';
 const TOKEN_KEY = 'amal_mobile_token';
 
-const colors = {
-  bg: '#EEF4FF', surface: '#FFFFFF', text: '#0F172A', muted: '#64748B', primary: '#2563EB',
-  dark: '#0F172A', green: '#16A34A', red: '#DC2626', border: '#E2E8F0', purple: '#7C3AED',
+// ─── Design Tokens ───────────────────────────────────────────────────────────
+const C = {
+  bg:           '#F4F7FF',
+  surface:      '#FFFFFF',
+  text:         '#0D1117',
+  muted:        '#6B7280',
+  subtle:       '#9CA3AF',
+  border:       '#E8ECF4',
+
+  primary:      '#4361EE',
+  primaryDark:  '#2D46C9',
+  primaryLight: '#EEF1FF',
+  grad:         ['#4361EE', '#2D46C9', '#1A1060'],
+
+  teal:         '#0EA5E9',
+  tealLight:    '#E0F2FE',
+  green:        '#10B981',
+  greenLight:   '#D1FAE5',
+  gold:         '#F59E0B',
+  goldLight:    '#FEF3C7',
+  red:          '#EF4444',
 };
 
+// ─── API Helper ───────────────────────────────────────────────────────────────
 async function requestJson(path, { method = 'GET', token = null, body = null } = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method,
@@ -41,33 +62,28 @@ async function requestJson(path, { method = 'GET', token = null, body = null } =
   return data;
 }
 
-function AppHeader({ user, onLogout }) {
+// ─── Loading ──────────────────────────────────────────────────────────────────
+function LoadingScreen() {
   return (
-    <View style={styles.header}>
-      <View style={styles.headerProfile}>
-        <LinearGradient colors={[colors.primary, colors.dark]} style={styles.logo}>
-          <Text style={styles.logoText}>A</Text>
-        </LinearGradient>
-        <View style={styles.headerTextWrap}>
-          <Text style={styles.appName}>Amal</Text>
-          <Text style={styles.schoolName} numberOfLines={1}>{user?.school?.name || 'مدرسة'} — {user?.name || user?.username}</Text>
+    <LinearGradient colors={C.grad} style={styles.fill}>
+      <StatusBar barStyle="light-content" />
+      <View style={styles.loadingLogoWrap}>
+        <View style={styles.loadingLogoRing}>
+          <Text style={styles.loadingLogoLetter}>أ</Text>
         </View>
       </View>
-      <TouchableOpacity activeOpacity={0.85} onPress={onLogout} style={styles.rolePill}>
-        <Text style={styles.roleText}>{user?.role === 'principal' ? 'مديرة' : 'معلمة'}</Text>
-      </TouchableOpacity>
-    </View>
+      <ActivityIndicator color="rgba(255,255,255,0.8)" size="large" style={{ marginTop: 32 }} />
+      <Text style={styles.loadingText}>جاري التحميل...</Text>
+    </LinearGradient>
   );
 }
 
-function LoadingScreen() {
-  return <SafeAreaView style={styles.centerScreen}><ActivityIndicator color={colors.primary} size="large" /><Text style={styles.loadingText}>جاري التحميل...</Text></SafeAreaView>;
-}
-
+// ─── Login ────────────────────────────────────────────────────────────────────
 function LoginScreen({ onLoggedIn }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState(null);
 
   async function login() {
     if (!username.trim()) return Alert.alert('تنبيه', 'فضلاً أدخلي اسم المستخدم');
@@ -84,28 +100,76 @@ function LoginScreen({ onLoggedIn }) {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-      <ScrollView contentContainerStyle={styles.loginContent} keyboardShouldPersistTaps="handled">
-        <LinearGradient colors={[colors.primary, colors.dark]} style={styles.loginHero}>
-          <Text style={styles.loginLogo}>A</Text>
-          <Text style={styles.loginTitle}>Amal</Text>
-          <Text style={styles.loginSubtitle}>تطبيق معايير التقييم وملفات المعلمات</Text>
-        </LinearGradient>
-        <View style={styles.formCard}>
-          <Text style={styles.sectionTitle}>تسجيل الدخول</Text>
-          <Text style={styles.sectionSubtitle}>ادخلي باسم المستخدم والرقم السري</Text>
-          <TextInput style={styles.input} placeholder="اسم المستخدم" value={username} onChangeText={setUsername} autoCapitalize="none" textAlign="right" />
-          <TextInput style={styles.input} placeholder="الرقم السري" value={password} onChangeText={setPassword} secureTextEntry keyboardType="number-pad" textAlign="right" />
-          <TouchableOpacity activeOpacity={0.86} style={styles.primaryButton} onPress={login} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>دخول</Text>}
-          </TouchableOpacity>
+    <View style={styles.fill}>
+      <StatusBar barStyle="light-content" />
+      {/* Top gradient section */}
+      <LinearGradient colors={C.grad} style={styles.loginTop}>
+        <SafeAreaView style={styles.loginTopInner}>
+          <View style={styles.loginLogoRing}>
+            <Text style={styles.loginLogoLetter}>أ</Text>
+          </View>
+          <Text style={styles.loginAppName}>أمل</Text>
+          <Text style={styles.loginTagline}>منصة معايير التقييم وملفات المعلمات</Text>
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* Bottom card */}
+      <ScrollView
+        style={styles.loginSheet}
+        contentContainerStyle={styles.loginSheetContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.loginWelcome}>مرحباً بكِ</Text>
+        <Text style={styles.loginSub}>سجّلي دخولك للمتابعة</Text>
+
+        <View style={[styles.inputRow, focusedField === 'username' && styles.inputRowFocused]}>
+          <TextInput
+            style={styles.inputField}
+            placeholder="اسم المستخدم"
+            placeholderTextColor={C.subtle}
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            textAlign="right"
+            onFocus={() => setFocusedField('username')}
+            onBlur={() => setFocusedField(null)}
+          />
+          <View style={styles.inputIconWrap}>
+            <Ionicons name="person-outline" size={20} color={focusedField === 'username' ? C.primary : C.muted} />
+          </View>
         </View>
+
+        <View style={[styles.inputRow, focusedField === 'password' && styles.inputRowFocused]}>
+          <TextInput
+            style={styles.inputField}
+            placeholder="الرقم السري"
+            placeholderTextColor={C.subtle}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            keyboardType="number-pad"
+            textAlign="right"
+            onFocus={() => setFocusedField('password')}
+            onBlur={() => setFocusedField(null)}
+          />
+          <View style={styles.inputIconWrap}>
+            <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'password' ? C.primary : C.muted} />
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.loginBtn} onPress={login} disabled={loading} activeOpacity={0.88}>
+          <LinearGradient colors={[C.primary, C.primaryDark]} style={styles.loginBtnGrad}>
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.loginBtnText}>دخول</Text>}
+          </LinearGradient>
+        </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
+// ─── Setup Password ───────────────────────────────────────────────────────────
 function SetupPasswordScreen({ token, user, onDone }) {
   const [name, setName] = useState(user?.name || '');
   const [password, setPassword] = useState('');
@@ -115,7 +179,10 @@ function SetupPasswordScreen({ token, user, onDone }) {
   async function submit() {
     setLoading(true);
     try {
-      const data = await requestJson('/setup-password', { method: 'POST', token, body: { name, password, password_confirmation: confirm } });
+      const data = await requestJson('/setup-password', {
+        method: 'POST', token,
+        body: { name, password, password_confirmation: confirm },
+      });
       onDone(data.user);
     } catch (error) {
       Alert.alert('تعذر الاعتماد', error.message);
@@ -125,81 +192,280 @@ function SetupPasswordScreen({ token, user, onDone }) {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.loginContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.formCard}>
-          <Text style={styles.sectionTitle}>اعتماد الحساب</Text>
-          <Text style={styles.sectionSubtitle}>فضلاً أدخلي الاسم والرقم السري الجديد من 4 خانات.</Text>
-          <TextInput style={styles.input} placeholder="الاسم" value={name} onChangeText={setName} textAlign="right" />
-          <TextInput style={styles.input} placeholder="رقم سري من 4 خانات" value={password} onChangeText={setPassword} keyboardType="number-pad" secureTextEntry maxLength={4} textAlign="right" />
-          <TextInput style={styles.input} placeholder="تأكيد الرقم السري" value={confirm} onChangeText={setConfirm} keyboardType="number-pad" secureTextEntry maxLength={4} textAlign="right" />
-          <TouchableOpacity activeOpacity={0.86} style={styles.primaryButton} onPress={submit} disabled={loading}>
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryButtonText}>حفظ واعتماد</Text>}
-          </TouchableOpacity>
-        </View>
+    <View style={styles.fill}>
+      <StatusBar barStyle="light-content" />
+      <LinearGradient colors={C.grad} style={styles.loginTop}>
+        <SafeAreaView style={styles.loginTopInner}>
+          <View style={[styles.loginLogoRing, { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
+            <Ionicons name="shield-checkmark-outline" size={40} color="#fff" />
+          </View>
+          <Text style={styles.loginAppName}>اعتماد الحساب</Text>
+          <Text style={styles.loginTagline}>أدخلي اسمك والرقم السري الجديد</Text>
+        </SafeAreaView>
+      </LinearGradient>
+
+      <ScrollView style={styles.loginSheet} contentContainerStyle={styles.loginSheetContent} keyboardShouldPersistTaps="handled">
+        <Text style={styles.loginWelcome}>إعداد الحساب</Text>
+        <Text style={styles.loginSub}>هذه خطوة واحدة فقط</Text>
+
+        {[
+          { key: 'name', placeholder: 'الاسم الكامل', value: name, onChange: setName, icon: 'person-outline', keyboard: 'default', secure: false, max: null },
+          { key: 'pass', placeholder: 'رقم سري من 4 خانات', value: password, onChange: setPassword, icon: 'lock-closed-outline', keyboard: 'number-pad', secure: true, max: 4 },
+          { key: 'conf', placeholder: 'تأكيد الرقم السري', value: confirm, onChange: setConfirm, icon: 'lock-open-outline', keyboard: 'number-pad', secure: true, max: 4 },
+        ].map((f) => (
+          <View key={f.key} style={styles.inputRow}>
+            <TextInput
+              style={styles.inputField}
+              placeholder={f.placeholder}
+              placeholderTextColor={C.subtle}
+              value={f.value}
+              onChangeText={f.onChange}
+              keyboardType={f.keyboard}
+              secureTextEntry={f.secure}
+              maxLength={f.max || undefined}
+              textAlign="right"
+            />
+            <View style={styles.inputIconWrap}>
+              <Ionicons name={f.icon} size={20} color={C.muted} />
+            </View>
+          </View>
+        ))}
+
+        <TouchableOpacity style={styles.loginBtn} onPress={submit} disabled={loading} activeOpacity={0.88}>
+          <LinearGradient colors={[C.primary, C.primaryDark]} style={styles.loginBtnGrad}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.loginBtnText}>حفظ واعتماد</Text>}
+          </LinearGradient>
+        </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
-function HeroCard({ user }) {
+// ─── App Header ───────────────────────────────────────────────────────────────
+function AppHeader({ user, onLogout }) {
+  const initials = user?.name?.charAt(0) || 'م';
+  const isPrincipal = user?.role === 'principal' || user?.is_principal;
+
   return (
-    <LinearGradient colors={[colors.primary, '#1D4ED8', colors.dark]} style={styles.hero}>
-      <View style={styles.heroTopRow}><View style={styles.heroPill}><Text style={styles.heroPillText}>React Native + API</Text></View><Ionicons name="sparkles-outline" size={26} color="#DBEAFE" /></View>
-      <Text style={styles.heroTitle}>مرحبًا {user?.name}</Text>
-      <Text style={styles.heroText}>{user?.is_principal ? 'واجهة جوال لإدارة معايير التقييم وملفات المعلمات.' : 'واجهة جوال لرفع ومتابعة ملفات معايير التقييم الخاصة بك.'}</Text>
-    </LinearGradient>
+    <View style={styles.header}>
+      <TouchableOpacity onPress={onLogout} style={styles.headerLogoutBtn} activeOpacity={0.75}>
+        <Ionicons name="log-out-outline" size={20} color={C.muted} />
+      </TouchableOpacity>
+
+      <View style={styles.headerCenter}>
+        <Text style={styles.headerSchool} numberOfLines={1}>{user?.school?.name || 'مدرسة'}</Text>
+        <Text style={styles.headerName} numberOfLines={1}>{user?.name}</Text>
+      </View>
+
+      <View style={styles.headerAvatarWrap}>
+        <LinearGradient colors={[C.primary, C.primaryDark]} style={styles.headerAvatar}>
+          <Text style={styles.headerAvatarText}>{initials}</Text>
+        </LinearGradient>
+        <View style={[styles.headerRoleDot, { backgroundColor: isPrincipal ? C.gold : C.green }]} />
+      </View>
+    </View>
   );
 }
 
-function StatCard({ label, value, icon, tone }) {
-  return <View style={styles.statCard}><View style={[styles.statIcon, { backgroundColor: tone }]}><Ionicons name={icon} size={24} color={colors.primary} /></View><View><Text style={styles.statLabel}>{label}</Text><Text style={styles.statValue}>{value}</Text></View></View>;
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+function StatCard({ label, value, icon, bg, color }) {
+  return (
+    <View style={styles.statCard}>
+      <View style={[styles.statIconBg, { backgroundColor: bg }]}>
+        <Ionicons name={icon} size={20} color={color} />
+      </View>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
 }
 
-function SectionHeader({ title, subtitle }) {
-  return <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>{title}</Text>{subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}</View>;
+// ─── Action Row ───────────────────────────────────────────────────────────────
+function ActionRow({ icon, title, subtitle, accent = C.primary, onPress, noBorder }) {
+  return (
+    <TouchableOpacity style={[styles.actionRow, noBorder && { borderBottomWidth: 0 }]} onPress={onPress} activeOpacity={0.8}>
+      <Ionicons name="chevron-back" size={16} color={C.border} />
+      <View style={styles.actionRowText}>
+        <Text style={styles.actionRowTitle}>{title}</Text>
+        {subtitle ? <Text style={styles.actionRowSub}>{subtitle}</Text> : null}
+      </View>
+      <View style={[styles.actionRowIcon, { backgroundColor: `${accent}18` }]}>
+        <Ionicons name={icon} size={20} color={accent} />
+      </View>
+    </TouchableOpacity>
+  );
 }
 
-function ActionCard({ icon, title, subtitle, color = colors.primary, onPress }) {
-  return <TouchableOpacity activeOpacity={0.85} style={styles.actionCard} onPress={onPress}><View style={[styles.actionIcon, { backgroundColor: `${color}18` }]}><Ionicons name={icon} size={24} color={color} /></View><View style={styles.actionText}><Text style={styles.actionTitle}>{title}</Text><Text style={styles.actionSubtitle}>{subtitle}</Text></View><Ionicons name="chevron-back" size={20} color={colors.muted} /></TouchableOpacity>;
-}
-
+// ─── Home Screen ──────────────────────────────────────────────────────────────
 function HomeScreen({ user, dashboard, setTab }) {
   const stats = dashboard?.stats || {};
+  const isPrincipal = user?.is_principal;
+  const latestUploads = (dashboard?.latest_uploads || []).slice(0, 4);
+
   return (
-    <ScrollView contentContainerStyle={styles.screenContent} showsVerticalScrollIndicator={false}>
-      <HeroCard user={user} />
-      <View style={styles.statsGrid}>
-        {user?.is_principal && <StatCard label="المعلمات" value={String(stats.teachers_count ?? 0)} icon="people-outline" tone="#EEF2FF" />}
-        <StatCard label="معايير التقييم" value={String(stats.evidence_count ?? 0)} icon="checkmark-done-outline" tone="#DBEAFE" />
-        <StatCard label={user?.is_principal ? 'إجمالي الملفات' : 'ملفاتي'} value={String(stats.uploads_count ?? 0)} icon="folder-open-outline" tone="#DCFCE7" />
+    <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false}>
+
+      {/* Hero card */}
+      <LinearGradient colors={C.grad} style={styles.heroCard}>
+        <View style={styles.heroDecor1} />
+        <View style={styles.heroDecor2} />
+        <View style={styles.heroPill}>
+          <View style={styles.heroPillDot} />
+          <Text style={styles.heroPillText}>{isPrincipal ? 'مديرة المدرسة' : 'معلمة'}</Text>
+        </View>
+        <Text style={styles.heroGreeting}>مرحباً</Text>
+        <Text style={styles.heroName}>{user?.name}</Text>
+        <Text style={styles.heroDesc}>
+          {isPrincipal
+            ? 'إدارة معايير التقييم وملفات المعلمات'
+            : 'رفع ومتابعة ملفات معايير التقييم الخاصة بك'}
+        </Text>
+      </LinearGradient>
+
+      {/* Stats */}
+      <View style={styles.statsRow}>
+        {isPrincipal && (
+          <StatCard label="المعلمات" value={String(stats.teachers_count ?? 0)} icon="people" bg={C.primaryLight} color={C.primary} />
+        )}
+        <StatCard label="المعايير" value={String(stats.evidence_count ?? 0)} icon="checkmark-circle" bg={C.tealLight} color={C.teal} />
+        <StatCard label="الملفات" value={String(stats.uploads_count ?? 0)} icon="folder" bg={C.greenLight} color={C.green} />
       </View>
-      <SectionHeader title="اختصارات سريعة" subtitle="الوصول لأهم الشاشات بلمسة واحدة" />
-      <ActionCard icon="checkmark-done-outline" title="معايير التقييم" subtitle="عرض ورفع الملفات على المعايير" onPress={() => setTab('evidence')} />
-      {user?.is_principal && <ActionCard icon="settings-outline" title="الإعدادات" subtitle="إدارة المعلمات ومتابعة الملفات" color={colors.purple} onPress={() => setTab('settings')} />}
-      <SectionHeader title="آخر الملفات" subtitle="أحدث الملفات المرفوعة" />
-      {(dashboard?.latest_uploads || []).slice(0, 5).map((upload) => <ActionCard key={upload.id} icon="document-attach-outline" title={upload.title} subtitle={upload.evidence?.title || upload.created_at} color={colors.green} />)}
+
+      {/* Quick actions */}
+      <Text style={styles.sectionLabel}>اختصارات سريعة</Text>
+      <View style={styles.listCard}>
+        <ActionRow icon="checkmark-done-circle-outline" title="معايير التقييم" subtitle="عرض ورفع الملفات" accent={C.teal} onPress={() => setTab('evidence')} />
+        {isPrincipal && (
+          <ActionRow icon="settings-outline" title="الإعدادات" subtitle="إدارة المعلمات" accent={C.gold} onPress={() => setTab('settings')} noBorder />
+        )}
+      </View>
+
+      {/* Latest uploads */}
+      {latestUploads.length > 0 && (
+        <>
+          <Text style={styles.sectionLabel}>آخر الملفات المرفوعة</Text>
+          <View style={styles.listCard}>
+            {latestUploads.map((upload, idx) => (
+              <View key={upload.id} style={[styles.uploadRow, idx === latestUploads.length - 1 && { borderBottomWidth: 0 }]}>
+                <Text style={styles.uploadRowDate}>{upload.created_at}</Text>
+                <View style={styles.uploadRowText}>
+                  <Text style={styles.uploadRowTitle} numberOfLines={1}>{upload.title}</Text>
+                  <Text style={styles.uploadRowSub} numberOfLines={1}>{upload.evidence?.title || '—'}</Text>
+                </View>
+                <View style={styles.uploadRowIcon}>
+                  <Ionicons name="document-attach-outline" size={17} color={C.green} />
+                </View>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+
+      <View style={{ height: 24 }} />
     </ScrollView>
   );
 }
 
-function EvidenceScreen({ evidence }) {
-  return <ScrollView contentContainerStyle={styles.screenContent} showsVerticalScrollIndicator={false}><SectionHeader title="معايير التقييم" subtitle="اختاري معيارًا لعرض الملفات أو رفع ملفات جديدة" />{(evidence || []).map((item) => <View key={item.id} style={styles.listCard}><View style={styles.listTop}><View style={styles.listIcon}><Ionicons name="checkmark-done-outline" size={22} color={colors.primary} /></View><View style={styles.listText}><Text style={styles.listTitle}>{item.title}</Text><Text style={styles.listSubtitle}>{item.description || 'لا يوجد وصف.'}</Text></View></View><View style={styles.listFooter}><Text style={styles.countPill}>عدد الملفات: {item.uploads_count ?? 0}</Text><Text style={styles.linkText}>فتح المعيار</Text></View></View>)}</ScrollView>;
+// ─── Evidence Screen ──────────────────────────────────────────────────────────
+function EvidenceScreen({ evidence, onSelectEvidence }) {
+  return (
+    <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false}>
+      <Text style={styles.pageTitle}>معايير التقييم</Text>
+      <Text style={styles.pageSubtitle}>اختاري معيارًا لعرض ملفاته أو رفع ملفات جديدة</Text>
+
+      {(evidence || []).map((item) => (
+        <TouchableOpacity key={item.id} style={styles.evidenceCard} activeOpacity={0.82} onPress={() => onSelectEvidence(item)}>
+          <View style={styles.evidenceCardTop}>
+            <View style={styles.evidenceBadge}>
+              <Ionicons name="folder-outline" size={13} color={C.primary} />
+              <Text style={styles.evidenceBadgeText}>{item.uploads_count ?? 0} ملف</Text>
+            </View>
+            <View style={styles.evidenceIconWrap}>
+              <LinearGradient colors={[C.primary, C.primaryDark]} style={styles.evidenceIcon}>
+                <Ionicons name="checkmark-done-outline" size={18} color="#fff" />
+              </LinearGradient>
+            </View>
+          </View>
+
+          <Text style={styles.evidenceTitle}>{item.title}</Text>
+          {item.description ? (
+            <Text style={styles.evidenceDesc} numberOfLines={2}>{item.description}</Text>
+          ) : null}
+
+          <View style={styles.evidenceCardFooter}>
+            <View style={styles.evidenceOpenBtn}>
+              <Text style={styles.evidenceOpenText}>فتح المعيار</Text>
+              <Ionicons name="arrow-back-outline" size={15} color={C.primary} />
+            </View>
+            <View style={styles.evidenceProgressBar}>
+              <View style={[styles.evidenceProgressFill, { width: `${Math.min((item.uploads_count ?? 0) * 25, 100)}%` }]} />
+            </View>
+          </View>
+        </TouchableOpacity>
+      ))}
+
+      <View style={{ height: 24 }} />
+    </ScrollView>
+  );
 }
 
+// ─── Settings Screen ──────────────────────────────────────────────────────────
 function SettingsScreen({ user }) {
-  return <ScrollView contentContainerStyle={styles.screenContent} showsVerticalScrollIndicator={false}><SectionHeader title="الإعدادات" subtitle="كل ما يخص إدارة الحساب" />{user?.is_principal ? <><ActionCard icon="people-outline" title="المعلمات" subtitle="إضافة وتعديل حسابات المعلمات" /><ActionCard icon="folder-open-outline" title="متابعة ملفات المعلمات" subtitle="اختيار معلمة ثم معيار ثم الملفات" color={colors.purple} /></> : <ActionCard icon="person-outline" title="حسابي" subtitle="بيانات المعلمة وملفاتها" />}</ScrollView>;
+  const isPrincipal = user?.is_principal;
+
+  return (
+    <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false}>
+      <Text style={styles.pageTitle}>الإعدادات</Text>
+      <Text style={styles.pageSubtitle}>إدارة المعلمات والحساب</Text>
+
+      {isPrincipal ? (
+        <View style={styles.listCard}>
+          <ActionRow icon="people-outline" title="المعلمات" subtitle="إضافة وتعديل حسابات المعلمات" accent={C.primary} />
+          <ActionRow icon="folder-open-outline" title="ملفات المعلمات" subtitle="متابعة ملفات كل معلمة" accent={C.gold} noBorder />
+        </View>
+      ) : (
+        <View style={styles.listCard}>
+          <ActionRow icon="person-circle-outline" title="حسابي" subtitle="بيانات المعلمة وملفاتها" accent={C.primary} noBorder />
+        </View>
+      )}
+
+      <View style={{ height: 24 }} />
+    </ScrollView>
+  );
 }
 
-function BottomTab({ active, icon, label, onPress }) {
-  return <TouchableOpacity activeOpacity={0.85} onPress={onPress} style={[styles.tabItem, active && styles.tabItemActive]}><Ionicons name={icon} size={23} color={active ? colors.dark : '#CBD5E1'} /><Text style={[styles.tabLabel, active && styles.tabLabelActive]}>{label}</Text></TouchableOpacity>;
+// ─── Bottom Navigation ────────────────────────────────────────────────────────
+function BottomNav({ tab, setTab, isPrincipal }) {
+  const tabs = [
+    { id: 'home',     icon: 'home',                 iconOff: 'home-outline',                 label: 'الرئيسية' },
+    { id: 'evidence', icon: 'checkmark-done-circle', iconOff: 'checkmark-done-circle-outline', label: 'المعايير'  },
+    ...(isPrincipal ? [{ id: 'settings', icon: 'settings', iconOff: 'settings-outline', label: 'إعدادات' }] : []),
+  ];
+
+  return (
+    <View style={styles.bottomNavWrap}>
+      <View style={styles.bottomNav}>
+        {tabs.map((t) => {
+          const active = tab === t.id;
+          return (
+            <TouchableOpacity key={t.id} style={[styles.navTab, active && styles.navTabActive]} onPress={() => setTab(t.id)} activeOpacity={0.8}>
+              <Ionicons name={active ? t.icon : t.iconOff} size={22} color={active ? C.primary : C.muted} />
+              <Text style={[styles.navLabel, active && styles.navLabelActive]}>{t.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
 }
 
+// ─── Main App ─────────────────────────────────────────────────────────────────
 function MainApp({ token, user, setUser, onLogout }) {
   const [tab, setTab] = useState('home');
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState(null);
   const [evidence, setEvidence] = useState([]);
+  const [selectedEvidence, setSelectedEvidence] = useState(null);
 
   useEffect(() => {
     async function loadData() {
@@ -222,16 +488,42 @@ function MainApp({ token, user, setUser, onLogout }) {
     loadData();
   }, []);
 
+  const isPrincipal = user?.is_principal || user?.role === 'principal';
+
+  // When an evidence item is selected, show detail screen (full screen, no bottom nav)
+  if (!loading && selectedEvidence) {
+    return (
+      <SafeAreaView style={styles.fill}>
+        <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+        <EvidenceDetailScreen
+          token={token}
+          evidence={selectedEvidence}
+          onBack={() => setSelectedEvidence(null)}
+        />
+      </SafeAreaView>
+    );
+  }
+
   const screen = useMemo(() => {
     if (loading) return <LoadingScreen />;
-    if (tab === 'evidence') return <EvidenceScreen evidence={evidence} />;
+    if (tab === 'evidence') return <EvidenceScreen evidence={evidence} onSelectEvidence={setSelectedEvidence} />;
     if (tab === 'settings') return <SettingsScreen user={user} />;
     return <HomeScreen user={user} dashboard={dashboard} setTab={setTab} />;
   }, [tab, loading, dashboard, evidence, user]);
 
-  return <SafeAreaView style={styles.safeArea}><StatusBar barStyle="dark-content" backgroundColor={colors.bg} /><AppHeader user={user} onLogout={onLogout} /><View style={styles.container}>{screen}</View><View style={styles.bottomTabs}><BottomTab active={tab === 'home'} icon="home-outline" label="الرئيسية" onPress={() => setTab('home')} /><BottomTab active={tab === 'evidence'} icon="checkmark-done-outline" label="المعايير" onPress={() => setTab('evidence')} /><BottomTab active={tab === 'settings'} icon="settings-outline" label="الإعدادات" onPress={() => setTab('settings')} /></View></SafeAreaView>;
+  return (
+    <View style={[styles.fill, { backgroundColor: C.bg }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
+      <SafeAreaView style={styles.fill}>
+        {!loading && <AppHeader user={user} onLogout={onLogout} />}
+        <View style={styles.fill}>{screen}</View>
+        {!loading && <BottomNav tab={tab} setTab={setTab} isPrincipal={isPrincipal} />}
+      </SafeAreaView>
+    </View>
+  );
 }
 
+// ─── Root ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [booting, setBooting] = useState(true);
   const [token, setToken] = useState(null);
@@ -259,15 +551,126 @@ export default function App() {
   async function logout() {
     if (token) requestJson('/logout', { method: 'POST', token }).catch(() => {});
     await SecureStore.deleteItemAsync(TOKEN_KEY);
-    setToken(null); setUser(null); setNeedsSetup(false);
+    setToken(null);
+    setUser(null);
+    setNeedsSetup(false);
   }
 
   if (booting) return <LoadingScreen />;
-  if (!token) return <LoginScreen onLoggedIn={(newToken, newUser, setup) => { setToken(newToken); setUser(newUser); setNeedsSetup(setup); }} />;
-  if (needsSetup) return <SetupPasswordScreen token={token} user={user} onDone={(newUser) => { setUser(newUser); setNeedsSetup(false); }} />;
+  if (!token) return <LoginScreen onLoggedIn={(t, u, s) => { setToken(t); setUser(u); setNeedsSetup(s); }} />;
+  if (needsSetup) return <SetupPasswordScreen token={token} user={user} onDone={(u) => { setUser(u); setNeedsSetup(false); }} />;
   return <MainApp token={token} user={user} setUser={setUser} onLogout={logout} />;
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const shadow = (depth = 2) => Platform.select({
+  ios:     { shadowColor: '#1A1060', shadowOffset: { width: 0, height: depth }, shadowOpacity: 0.08, shadowRadius: depth * 4 },
+  android: { elevation: depth + 1 },
+});
+
 const styles = StyleSheet.create({
-  safeArea:{flex:1,backgroundColor:colors.bg,direction:'rtl'},container:{flex:1},centerScreen:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:colors.bg},loadingText:{marginTop:12,color:colors.muted,fontWeight:'700'},loginContent:{padding:18,paddingTop:40},loginHero:{borderRadius:34,padding:28,minHeight:210,alignItems:'center',justifyContent:'center',marginBottom:16},loginLogo:{color:'#fff',fontSize:54,fontWeight:'900'},loginTitle:{color:'#fff',fontSize:34,fontWeight:'900'},loginSubtitle:{color:'#DBEAFE',fontSize:14,marginTop:8,textAlign:'center'},formCard:{backgroundColor:colors.surface,borderRadius:28,padding:18,borderWidth:1,borderColor:colors.border},input:{backgroundColor:'#F8FAFC',borderWidth:1,borderColor:colors.border,borderRadius:20,minHeight:52,paddingHorizontal:14,marginTop:12,fontSize:15,color:colors.text},primaryButton:{backgroundColor:colors.primary,borderRadius:20,minHeight:52,alignItems:'center',justifyContent:'center',marginTop:16},primaryButtonText:{color:'#fff',fontSize:16,fontWeight:'900'},header:{paddingHorizontal:18,paddingTop:12,paddingBottom:10,flexDirection:'row-reverse',alignItems:'center',justifyContent:'space-between',backgroundColor:'rgba(248,251,255,0.96)',borderBottomWidth:1,borderBottomColor:'#E2E8F0'},headerProfile:{flexDirection:'row-reverse',alignItems:'center',flex:1,gap:10},logo:{width:44,height:44,borderRadius:16,alignItems:'center',justifyContent:'center'},logoText:{color:'#fff',fontSize:22,fontWeight:'900'},headerTextWrap:{flex:1,alignItems:'flex-end'},appName:{color:colors.text,fontSize:20,fontWeight:'900'},schoolName:{color:colors.muted,fontSize:12,marginTop:2},rolePill:{backgroundColor:'#DBEAFE',paddingHorizontal:12,paddingVertical:8,borderRadius:99},roleText:{color:'#1D4ED8',fontSize:12,fontWeight:'900'},screenContent:{padding:16,paddingBottom:112},hero:{borderRadius:32,padding:22,marginBottom:14,minHeight:172,justifyContent:'space-between'},heroTopRow:{flexDirection:'row-reverse',justifyContent:'space-between',alignItems:'center'},heroPill:{alignSelf:'flex-end',backgroundColor:'rgba(255,255,255,0.16)',paddingHorizontal:12,paddingVertical:7,borderRadius:99},heroPillText:{color:'#EFF6FF',fontSize:12,fontWeight:'700'},heroTitle:{color:'#fff',fontSize:31,fontWeight:'900',textAlign:'right',marginTop:16},heroText:{color:'#DBEAFE',fontSize:15,lineHeight:25,textAlign:'right',marginTop:8},statsGrid:{gap:12,marginBottom:12},statCard:{backgroundColor:colors.surface,borderRadius:26,padding:16,minHeight:92,flexDirection:'row-reverse',alignItems:'center',gap:14,borderWidth:1,borderColor:colors.border,elevation:3},statIcon:{width:54,height:54,borderRadius:20,alignItems:'center',justifyContent:'center'},statLabel:{color:colors.muted,fontSize:13,textAlign:'right'},statValue:{color:colors.text,fontSize:30,fontWeight:'900',textAlign:'right',marginTop:2},sectionHeader:{marginTop:8,marginBottom:10,alignItems:'flex-end'},sectionTitle:{color:colors.text,fontSize:21,fontWeight:'900',textAlign:'right'},sectionSubtitle:{color:colors.muted,fontSize:13,textAlign:'right',marginTop:4},actionCard:{backgroundColor:colors.surface,borderRadius:26,padding:16,marginBottom:10,flexDirection:'row-reverse',alignItems:'center',gap:12,borderWidth:1,borderColor:colors.border},actionIcon:{width:52,height:52,borderRadius:20,alignItems:'center',justifyContent:'center'},actionText:{flex:1,alignItems:'flex-end'},actionTitle:{color:colors.text,fontSize:16,fontWeight:'900',textAlign:'right'},actionSubtitle:{color:colors.muted,fontSize:12,marginTop:4,textAlign:'right'},listCard:{backgroundColor:colors.surface,borderRadius:26,padding:16,marginBottom:10,borderWidth:1,borderColor:colors.border},listTop:{flexDirection:'row-reverse',gap:12,alignItems:'center'},listIcon:{width:52,height:52,borderRadius:20,backgroundColor:'#DBEAFE',alignItems:'center',justifyContent:'center'},listText:{flex:1,alignItems:'flex-end'},listTitle:{color:colors.text,fontSize:16,fontWeight:'900',textAlign:'right'},listSubtitle:{color:colors.muted,fontSize:12,marginTop:4,textAlign:'right'},listFooter:{marginTop:14,flexDirection:'row-reverse',justifyContent:'space-between',alignItems:'center'},countPill:{backgroundColor:'#EEF2FF',color:'#3730A3',paddingHorizontal:10,paddingVertical:6,borderRadius:99,fontSize:12,fontWeight:'800'},linkText:{color:colors.primary,fontSize:13,fontWeight:'900'},bottomTabs:{position:'absolute',left:12,right:12,bottom:14,minHeight:76,backgroundColor:colors.dark,borderRadius:28,padding:8,flexDirection:'row-reverse',gap:6,elevation:10},tabItem:{flex:1,borderRadius:22,alignItems:'center',justifyContent:'center',gap:4},tabItemActive:{backgroundColor:'#fff'},tabLabel:{color:'#CBD5E1',fontSize:11,fontWeight:'900'},tabLabelActive:{color:colors.dark},
+  fill: { flex: 1 },
+
+  // Loading
+  loadingLogoWrap: { alignItems: 'center' },
+  loadingLogoRing: { width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)' },
+  loadingLogoLetter: { color: '#fff', fontSize: 44, fontWeight: '900' },
+  loadingText: { color: 'rgba(255,255,255,0.7)', fontSize: 15, fontWeight: '700', marginTop: 14, textAlign: 'center' },
+
+  // Login
+  loginTop: { paddingBottom: 56 },
+  loginTopInner: { alignItems: 'center', paddingTop: 56, paddingBottom: 10, gap: 14 },
+  loginLogoRing: { width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.28)' },
+  loginLogoLetter: { color: '#fff', fontSize: 44, fontWeight: '900' },
+  loginAppName: { color: '#fff', fontSize: 28, fontWeight: '900' },
+  loginTagline: { color: 'rgba(255,255,255,0.68)', fontSize: 13, textAlign: 'center', paddingHorizontal: 36 },
+  loginSheet: { flex: 1, backgroundColor: C.surface, borderTopLeftRadius: 36, borderTopRightRadius: 36, marginTop: -36 },
+  loginSheetContent: { padding: 28, paddingTop: 38 },
+  loginWelcome: { color: C.text, fontSize: 26, fontWeight: '900', textAlign: 'right', marginBottom: 4 },
+  loginSub: { color: C.muted, fontSize: 14, textAlign: 'right', marginBottom: 28 },
+  inputRow: { flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: C.bg, borderRadius: 16, borderWidth: 1.5, borderColor: C.border, marginBottom: 14, paddingHorizontal: 14, minHeight: 56 },
+  inputRowFocused: { borderColor: C.primary, backgroundColor: C.primaryLight },
+  inputIconWrap: { marginLeft: 10 },
+  inputField: { flex: 1, fontSize: 15, color: C.text, textAlign: 'right' },
+  loginBtn: { marginTop: 8, borderRadius: 18, overflow: 'hidden' },
+  loginBtnGrad: { minHeight: 56, alignItems: 'center', justifyContent: 'center' },
+  loginBtnText: { color: '#fff', fontSize: 17, fontWeight: '900' },
+
+  // Header
+  header: { flexDirection: 'row-reverse', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 12, backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border },
+  headerLogoutBtn: { width: 38, height: 38, borderRadius: 13, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerSchool: { color: C.text, fontSize: 14, fontWeight: '800', textAlign: 'center' },
+  headerName: { color: C.muted, fontSize: 11, textAlign: 'center', marginTop: 1 },
+  headerAvatarWrap: { position: 'relative' },
+  headerAvatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  headerAvatarText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  headerRoleDot: { position: 'absolute', bottom: 0, left: 0, width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: C.surface },
+
+  // Screens
+  screenPad: { padding: 18, paddingTop: 22 },
+
+  // Hero
+  heroCard: { borderRadius: 28, padding: 22, marginBottom: 20, minHeight: 200, overflow: 'hidden', position: 'relative' },
+  heroDecor1: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.055)', top: -50, left: -40 },
+  heroDecor2: { position: 'absolute', width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.07)', bottom: -20, right: 16 },
+  heroPill: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, alignSelf: 'flex-end', backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 99, marginBottom: 20 },
+  heroPillDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.green },
+  heroPillText: { color: 'rgba(255,255,255,0.88)', fontSize: 12, fontWeight: '700' },
+  heroGreeting: { color: 'rgba(255,255,255,0.65)', fontSize: 14, textAlign: 'right' },
+  heroName: { color: '#fff', fontSize: 28, fontWeight: '900', textAlign: 'right', marginBottom: 8 },
+  heroDesc: { color: 'rgba(255,255,255,0.6)', fontSize: 14, textAlign: 'right', lineHeight: 22 },
+
+  // Stats
+  statsRow: { flexDirection: 'row-reverse', gap: 10, marginBottom: 22 },
+  statCard: { flex: 1, backgroundColor: C.surface, borderRadius: 20, padding: 14, alignItems: 'center', ...shadow(2) },
+  statIconBg: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  statValue: { color: C.text, fontSize: 26, fontWeight: '900', textAlign: 'center' },
+  statLabel: { color: C.muted, fontSize: 11, textAlign: 'center', marginTop: 2, fontWeight: '600' },
+
+  // List card (grouped rows)
+  listCard: { backgroundColor: C.surface, borderRadius: 22, marginBottom: 22, overflow: 'hidden', ...shadow(2) },
+
+  // Section label
+  sectionLabel: { color: C.text, fontSize: 16, fontWeight: '900', textAlign: 'right', marginBottom: 10 },
+
+  // Action Row
+  actionRow: { flexDirection: 'row-reverse', alignItems: 'center', padding: 16, gap: 12, borderBottomWidth: 1, borderBottomColor: C.border },
+  actionRowIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  actionRowText: { flex: 1, alignItems: 'flex-end' },
+  actionRowTitle: { color: C.text, fontSize: 15, fontWeight: '800', textAlign: 'right' },
+  actionRowSub: { color: C.muted, fontSize: 12, textAlign: 'right', marginTop: 3 },
+
+  // Upload row (latest uploads)
+  uploadRow: { flexDirection: 'row-reverse', alignItems: 'center', padding: 14, gap: 10, borderBottomWidth: 1, borderBottomColor: C.border },
+  uploadRowIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: C.greenLight, alignItems: 'center', justifyContent: 'center' },
+  uploadRowText: { flex: 1, alignItems: 'flex-end' },
+  uploadRowTitle: { color: C.text, fontSize: 13, fontWeight: '800', textAlign: 'right' },
+  uploadRowSub: { color: C.muted, fontSize: 11, textAlign: 'right', marginTop: 2 },
+  uploadRowDate: { color: C.subtle, fontSize: 10 },
+
+  // Evidence cards
+  pageTitle: { color: C.text, fontSize: 24, fontWeight: '900', textAlign: 'right', marginBottom: 4 },
+  pageSubtitle: { color: C.muted, fontSize: 14, textAlign: 'right', marginBottom: 18 },
+  evidenceCard: { backgroundColor: C.surface, borderRadius: 22, marginBottom: 12, padding: 16, ...shadow(2) },
+  evidenceCardTop: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  evidenceIconWrap: { },
+  evidenceIcon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  evidenceBadge: { flexDirection: 'row-reverse', alignItems: 'center', gap: 5, backgroundColor: C.primaryLight, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99 },
+  evidenceBadgeText: { color: C.primary, fontSize: 12, fontWeight: '800' },
+  evidenceTitle: { color: C.text, fontSize: 16, fontWeight: '900', textAlign: 'right', marginBottom: 6 },
+  evidenceDesc: { color: C.muted, fontSize: 13, textAlign: 'right', lineHeight: 20, marginBottom: 12 },
+  evidenceCardFooter: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginTop: 4 },
+  evidenceOpenBtn: { flexDirection: 'row-reverse', alignItems: 'center', gap: 4 },
+  evidenceOpenText: { color: C.primary, fontSize: 13, fontWeight: '800' },
+  evidenceProgressBar: { flex: 1, height: 5, backgroundColor: C.border, borderRadius: 99, overflow: 'hidden' },
+  evidenceProgressFill: { height: '100%', backgroundColor: C.teal, borderRadius: 99 },
+
+  // Bottom Nav
+  bottomNavWrap: { paddingHorizontal: 16, paddingBottom: Platform.OS === 'ios' ? 8 : 14, paddingTop: 8, backgroundColor: C.bg },
+  bottomNav: { flexDirection: 'row-reverse', backgroundColor: C.surface, borderRadius: 26, padding: 6, ...shadow(4) },
+  navTab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 20, gap: 3 },
+  navTabActive: { backgroundColor: C.primaryLight },
+  navLabel: { color: C.muted, fontSize: 10, fontWeight: '700' },
+  navLabelActive: { color: C.primary },
 });
