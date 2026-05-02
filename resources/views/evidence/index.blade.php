@@ -48,42 +48,49 @@
         --native-accent: #25a875;
         --native-soft: #eaf7ee;
         --native-text: #16724f;
-        --native-progress: 83%;
-        --native-percent: '83%';
         position: relative !important;
         display: block !important;
         overflow: hidden !important;
-        min-height: 248px !important;
+        min-height: auto !important;
         margin: 0 !important;
-        padding: 22px 22px 84px !important;
+        padding: 22px !important;
         border-radius: 28px !important;
         background: #ffffff !important;
         border: 1px solid rgba(224, 229, 235, .95) !important;
         box-shadow: 0 12px 26px rgba(15, 23, 42, .07) !important;
+        cursor: pointer !important;
+        touch-action: manipulation !important;
+        transition: transform .12s ease, box-shadow .12s ease !important;
+    }
+
+    .react-evidence-index .upload-card:active {
+        transform: scale(.992) !important;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, .06) !important;
     }
 
     .react-evidence-index .upload-card:nth-child(3n + 1) {
         --native-accent: #25a875;
         --native-soft: #eaf7ee;
         --native-text: #16724f;
-        --native-progress: 83%;
-        --native-percent: '83%';
     }
 
     .react-evidence-index .upload-card:nth-child(3n + 2) {
         --native-accent: #2f6be8;
         --native-soft: #eef4ff;
         --native-text: #1d4ed8;
-        --native-progress: 67%;
-        --native-percent: '67%';
     }
 
     .react-evidence-index .upload-card:nth-child(3n) {
         --native-accent: #6551cf;
         --native-soft: #f1edff;
         --native-text: #5740b6;
-        --native-progress: 47%;
-        --native-percent: '47%';
+    }
+
+    .react-evidence-index .upload-card::before,
+    .react-evidence-index .upload-card::after,
+    .react-evidence-index .upload-card-footer::before {
+        display: none !important;
+        content: none !important;
     }
 
     .react-evidence-index .upload-card-main {
@@ -192,54 +199,17 @@
 
     .react-evidence-index .upload-card-footer {
         display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 12px !important;
+        justify-content: flex-end !important;
+        align-items: center !important;
+        gap: 8px !important;
         min-height: auto !important;
-        margin: 18px 0 0 !important;
-        padding: 15px 0 0 !important;
+        margin: 16px 0 0 !important;
+        padding: 14px 0 0 !important;
         border-top: 1px solid #eef0f3 !important;
     }
 
-    .react-evidence-index .upload-card::before {
-        content: var(--native-percent) !important;
-        position: absolute !important;
-        left: 22px !important;
-        bottom: 70px !important;
-        color: #111827 !important;
-        font-size: 20px !important;
-        font-weight: 950 !important;
-        z-index: 2 !important;
-    }
-
-    .react-evidence-index .upload-card::after {
-        content: '' !important;
-        position: absolute !important;
-        left: 22px !important;
-        right: 22px !important;
-        bottom: 58px !important;
-        height: 8px !important;
-        border-radius: 999px !important;
-        background: #ebe8e1 !important;
-        z-index: 1 !important;
-    }
-
-    .react-evidence-index .upload-card-footer::before {
-        content: '' !important;
-        position: absolute !important;
-        left: 22px !important;
-        bottom: 58px !important;
-        width: var(--native-progress) !important;
-        height: 8px !important;
-        border-radius: 999px !important;
-        background: var(--native-accent) !important;
-        z-index: 2 !important;
-    }
-
     .react-evidence-index .upload-card-footer span {
-        position: absolute !important;
-        right: 22px !important;
-        bottom: 84px !important;
+        position: static !important;
         display: inline-flex !important;
         align-items: center !important;
         gap: 6px !important;
@@ -257,29 +227,47 @@
     }
 
     .react-evidence-index .upload-card-footer .btn {
-        position: absolute !important;
-        left: 22px !important;
-        right: 22px !important;
-        bottom: 17px !important;
-        width: auto !important;
-        min-height: 44px !important;
-        padding: 0 16px !important;
-        border-radius: 16px !important;
-        background: #ffffff !important;
-        border: 1.5px solid var(--native-accent) !important;
-        color: var(--native-text) !important;
-        box-shadow: none !important;
-        font-size: 15px !important;
-        font-weight: 950 !important;
-    }
-
-    .react-evidence-index .upload-card-footer .btn::after {
-        content: '↗';
-        margin-right: 8px;
-        font-size: 17px;
-        line-height: 1;
+        display: none !important;
     }
 }
 </style>
-<div data-react-app='evidence-index'></div>
+
+<div data-react-app="evidence-index"></div>
+
+<script>
+(function () {
+    function bindEvidenceCards() {
+        document.querySelectorAll('.react-evidence-index .upload-card').forEach(function (card) {
+            if (card.dataset.tapBound === '1') return;
+            var link = card.querySelector('.upload-card-footer .btn');
+            if (!link || !link.href) return;
+
+            card.dataset.tapBound = '1';
+            card.setAttribute('role', 'link');
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('aria-label', 'فتح المعيار');
+
+            card.addEventListener('click', function (event) {
+                if (event.target.closest('a, button, input, textarea, select')) return;
+                window.location.href = link.href;
+            });
+
+            card.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    window.location.href = link.href;
+                }
+            });
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bindEvidenceCards);
+    } else {
+        bindEvidenceCards();
+    }
+
+    new MutationObserver(bindEvidenceCards).observe(document.documentElement, { childList: true, subtree: true });
+})();
+</script>
 @endsection
