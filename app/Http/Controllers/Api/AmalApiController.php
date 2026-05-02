@@ -449,7 +449,6 @@ class AmalApiController extends Controller
                     'title' => 'إدارة المعلمات',
                     'items' => [
                         ['title' => 'المعلمات', 'url' => route('teachers.index'), 'api_url' => url('/api/v1/teachers')],
-                        ['title' => 'متابعة ملفات المعلمات', 'url' => route('teacher-evidence.index'), 'api_url' => url('/api/v1/teacher-evidence')],
                     ],
                 ],
             ],
