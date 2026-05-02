@@ -127,4 +127,4 @@ jobs:
             -e "ssh $SSH_OPTS" \
             ./ "$DEPLOY_USER@$SSH_HOST:$PROJECT_PATH/"
 
-          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; pwd; php -v; mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; composer install --no-dev --optimize-autoloader --no-interaction; php artisan migrate --force; php artisan db:seed --class=TeacherAccountsSeeder --force; CACHE_STORE=file php -d display_errors=1 artisan optimize:clear"
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "set -e; cd '$PROJECT_PATH'; pwd; php -v; test -f vendor/autoload.php || { echo 'vendor/autoload.php is missing'; exit 1; }; mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache; php artisan migrate --force; php artisan db:seed --class=TeacherAccountsSeeder --force; CACHE_STORE=file php -d display_errors=1 artisan optimize:clear"
