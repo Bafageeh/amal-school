@@ -18,7 +18,20 @@ class EvidenceUploadController extends Controller
             'title' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
             'files' => ['required', 'array', 'min:1'],
-            'files.*' => ['required', 'file', 'max:20480', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx,ppt,pptx'],
+            'files.*' => [
+                'required',
+                'file',
+                'max:51200',
+                'mimes:pdf,jpg,jpeg,png,gif,webp,heic,heif,doc,docx,xls,xlsx,ppt,pptx,txt,csv,zip,rar,mp4,mov,avi,wmv,mkv,mp3,wav,m4a',
+            ],
+        ], [
+            'files.required' => 'يرجى اختيار ملف واحد على الأقل.',
+            'files.array' => 'يرجى اختيار الملفات بطريقة صحيحة.',
+            'files.min' => 'يرجى اختيار ملف واحد على الأقل.',
+            'files.*.required' => 'يرجى اختيار ملف واحد على الأقل.',
+            'files.*.file' => 'يرجى رفع ملف صحيح.',
+            'files.*.max' => 'حجم كل ملف يجب ألا يتجاوز 50 ميجابايت.',
+            'files.*.mimes' => 'نوع أحد الملفات غير مسموح. الأنواع المسموحة: PDF، الصور، Word، Excel، PowerPoint، النصوص، الملفات المضغوطة، الصوت، والفيديو.',
         ]);
 
         $files = $request->file('files', []);
