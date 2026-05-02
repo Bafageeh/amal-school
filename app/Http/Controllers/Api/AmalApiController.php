@@ -76,15 +76,25 @@ class AmalApiController extends Controller
             ->values();
     }
 
+    private function publicUploadUrl(EvidenceUpload $upload): string
+    {
+        return url(Storage::disk('public')->url($upload->file_path));
+    }
+
     private function uploadResource(EvidenceUpload $upload): array
     {
+        $publicUrl = $this->publicUploadUrl($upload);
+
         return [
             'id' => $upload->id,
             'title' => $upload->title,
             'notes' => $upload->notes,
             'file_type' => $upload->file_type,
             'file_path' => $upload->file_path,
-            'download_url' => route('uploads.download', $upload),
+            'file_name' => basename($upload->file_path),
+            'public_url' => $publicUrl,
+            'preview_url' => $publicUrl,
+            'download_url' => $publicUrl,
             'created_at' => $upload->created_at?->format('Y-m-d H:i'),
             'evidence' => $upload->evidenceItem ? [
                 'id' => $upload->evidenceItem->id,
