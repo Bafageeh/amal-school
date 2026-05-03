@@ -1,1 +1,1 @@
-Deploy trigger: 2026-05-03 fixed mobile settings cards direct app update
+Deploy trigger: 2026-05-03 restart mobile Expo after settings touch fix
