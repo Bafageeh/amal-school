@@ -6,7 +6,7 @@ p = next((x for x in APP_PATHS if x.exists()), None)
 if p is None:
     raise SystemExit('mobile/App.js not found')
 text = p.read_text()
-p.with_suffix('.js.backup-before-gotab-fix').write_text(text)
+p.with_suffix('.js.backup-before-remove-gotab-dependency').write_text(text)
 
 screen = '''
 function TeacherFilesScreen({ token, onBack }) {
@@ -49,21 +49,10 @@ function TeacherFilesScreen({ token, onBack }) {
 if 'function TeacherFilesScreen' not in text:
     text = text.replace('function MainApp', screen + '\nfunction MainApp', 1)
 
-# Ensure helper state and goTab exist inside MainApp.
 if 'const [settingsSub, setSettingsSub] = useState(null);' not in text:
     text = text.replace("const [tab, setTab] = useState('home');", "const [tab, setTab] = useState('home');\n  const [settingsSub, setSettingsSub] = useState(null);", 1)
 
-if 'function goTab(next)' not in text:
-    marker = 'let screen;'
-    if marker not in text:
-        marker = 'if (loading) screen ='
-    if marker not in text:
-        raise SystemExit('goTab insertion marker not found')
-    text = text.replace(marker, "function goTab(next) { setSettingsSub(null); setSelectedEvidence(null); setTab(next); }\n\n  " + marker, 1)
-else:
-    text = re.sub(r"function goTab\(next\) \{.*?\}", "function goTab(next) { setSettingsSub(null); setSelectedEvidence(null); setTab(next); }", text, count=1, flags=re.S)
-
-route = "else if (tab === 'teacherFiles') screen = <TeacherFilesScreen token={token} onBack={() => goTab('home')} onOpenEvidence={(item) => setSelectedEvidence(item)} />;"
+route = "else if (tab === 'teacherFiles') screen = <TeacherFilesScreen token={token} onBack={() => setTab('home')} onOpenEvidence={(item) => setSelectedEvidence(item)} />;"
 text = re.sub(r"\n\s*else if \(tab === 'teacherFiles'\) screen = <TeacherFilesScreen[^;]*;", "", text)
 marker = "else if (tab === 'evidence')"
 if marker not in text:
@@ -71,13 +60,22 @@ if marker not in text:
 if marker not in text:
     raise SystemExit('route marker not found')
 text = text.replace(marker, route + "\n  " + marker, 1)
-text = re.sub(r"<BottomNav tab=\{tab\} setTab=\{[^}]+\} isPrincipal=\{isPrincipal\} />", "<BottomNav tab={tab} setTab={goTab} isPrincipal={isPrincipal} />", text, count=1)
+
+# Do not reference goTab in JSX. Use an inline callback that is always in scope.
+inline_setter = "{(next) => { setSettingsSub(null); setSelectedEvidence(null); setTab(next); }}"
+text = re.sub(r"<BottomNav tab=\{tab\} setTab=\{[^}]+\} isPrincipal=\{isPrincipal\} />", f"<BottomNav tab={{tab}} setTab={inline_setter} isPrincipal={{isPrincipal}} />", text, count=1)
+text = text.replace('setTab={goTab}', 'setTab={(next) => { setSettingsSub(null); setSelectedEvidence(null); setTab(next); }}')
+
+# Remove a broken goTab definition if it exists outside useful scope; no component should depend on its name.
+text = text.replace("onBack={() => goTab('home')}", "onBack={() => setTab('home')}")
 
 if "id: 'teacherFiles'" not in text:
     text = text.replace("{ id: 'evidence', icon: 'list', iconOff: 'list-outline', label: 'حسب المعايير' },", "{ id: 'evidence', icon: 'list', iconOff: 'list-outline', label: 'حسب المعايير' },\n    ...(isPrincipal ? [{ id: 'teacherFiles', icon: 'folder-open', iconOff: 'folder-open-outline', label: 'متابعة المعلمات' }] : []),", 1)
 
 p.write_text(text)
-for item in ['function TeacherFilesScreen', 'function goTab(next)', "tab === 'teacherFiles'", "id: 'teacherFiles'", 'setTab={goTab}', 'متابعة المعلمات']:
+for item in ['function TeacherFilesScreen', "tab === 'teacherFiles'", "id: 'teacherFiles'", 'متابعة المعلمات']:
     if item not in text:
         raise SystemExit('missing ' + item)
-print('goTab and TeacherFilesScreen fixed in', p)
+if 'setTab={goTab}' in text or 'onBack={() => goTab' in text:
+    raise SystemExit('goTab dependency still exists')
+print('goTab dependency removed and teacherFiles route fixed in', p)
