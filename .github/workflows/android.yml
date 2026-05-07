@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - 'mobile/**'
+      - 'scripts/patch_mobile_settings_managers.py'
       - '.github/workflows/android.yml'
 
 jobs:
@@ -24,51 +25,11 @@ jobs:
       - name: Install Expo app dependencies
         working-directory: mobile
         run: npm install --no-audit --no-fund
-      - name: Apply requested mobile tabs before APK build
-        working-directory: mobile
+      - name: Apply latest mobile managers redesign before APK build
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import re
-          from pathlib import Path
-          p = Path('App.js')
-          text = p.read_text()
-
-          text = text.replace('title="معايير التقييم" subtitle={isPrincipal ? \'عرض ملفات المعلمات\' : \'عرض ورفع الملفات\'}', 'title="حسب المعايير" subtitle={isPrincipal ? \'عرض الملفات حسب كل معيار\' : \'عرض ورفع الملفات\'}')
-          text = text.replace('<Text style={styles.pageTitle}>معايير التقييم</Text>', '<Text style={styles.pageTitle}>حسب المعايير</Text>')
-          text = text.replace('<AdminBackHeader title="متابعة ملفات المعلمات" onBack={onBack} />', '<AdminBackHeader title="متابعة المعلمات" onBack={onBack} />')
-          text = text.replace(
-            '<ActionRow icon="people-outline" title="المعلمات" subtitle="إضافة وتعديل وحذف حسابات المعلمات" accent={C.primary} onPress={onOpenTeachers} /><ActionRow icon="folder-open-outline" title="متابعة ملفات المعلمات" subtitle="استعراض ملفات كل معلمة حسب المعيار" accent={C.gold} onPress={onOpenTeacherFiles} noBorder />',
-            '<ActionRow icon="people-outline" title="المعلمات" subtitle="إضافة وتعديل وحذف حسابات المعلمات" accent={C.primary} onPress={onOpenTeachers} noBorder />'
-          )
-          text = text.replace('function SettingsScreen({ user, onLogout, onOpenTeachers, onOpenTeacherFiles })', 'function SettingsScreen({ user, onLogout, onOpenTeachers })')
-          text = text.replace("<SettingsScreen user={user} onLogout={onLogout} onOpenTeachers={() => setSettingsSub('teachers')} onOpenTeacherFiles={() => setSettingsSub('teacherFiles')} />", "<SettingsScreen user={user} onLogout={onLogout} onOpenTeachers={() => setSettingsSub('teachers')} />")
-
-          new_bottom = """function BottomNav({ tab, setTab, isPrincipal }) {
-            const tabs = [{ id: 'home', icon: 'home', iconOff: 'home-outline', label: 'الرئيسية' }, { id: 'evidence', icon: 'list', iconOff: 'list-outline', label: 'حسب المعايير' }, ...(isPrincipal ? [{ id: 'teacherFiles', icon: 'folder-open', iconOff: 'folder-open-outline', label: 'متابعة المعلمات' }] : []), { id: 'settings', icon: 'settings', iconOff: 'settings-outline', label: 'الإعدادات' }];
-            return <View style={styles.bottomNavWrap}><View style={styles.bottomNav}>{tabs.map((t) => { const active = tab === t.id; return <TouchableOpacity key={t.id} style={[styles.navTab, active && styles.navTabActive]} onPress={() => setTab(t.id)} activeOpacity={0.8}><Ionicons name={active ? t.icon : t.iconOff} size={21} color={active ? C.primary : C.muted} /><Text style={[styles.navLabel, active && styles.navLabelActive]} numberOfLines={1}>{t.label}</Text></TouchableOpacity>; })}</View></View>;
-          }"""
-          text = re.sub(r'function BottomNav\(\{ tab, setTab, isPrincipal \}\) \{.*?\n\}\n\nfunction MainApp', new_bottom + '\n\nfunction MainApp', text, flags=re.S, count=1)
-
-          text = text.replace(
-            '<ActionRow icon="checkmark-done-circle-outline" title="حسب المعايير" subtitle={isPrincipal ? \'عرض الملفات حسب كل معيار\' : \'عرض ورفع الملفات\'} accent={C.teal} onPress={() => setTab(\'evidence\')} />\n        {isPrincipal && <ActionRow icon="settings-outline" title="الإعدادات" subtitle="إدارة المدرسة" accent={C.gold} onPress={() => setTab(\'settings\')} noBorder />}',
-            '<ActionRow icon="checkmark-done-circle-outline" title="حسب المعايير" subtitle={isPrincipal ? \'عرض الملفات حسب كل معيار\' : \'عرض ورفع الملفات\'} accent={C.teal} onPress={() => setTab(\'evidence\')} />\n        {isPrincipal && <ActionRow icon="folder-open-outline" title="متابعة المعلمات" subtitle="اختيار معلمة ثم معيار لعرض ملفاتها" accent={C.gold} onPress={() => setTab(\'teacherFiles\')} />}\n        <ActionRow icon="settings-outline" title="الإعدادات" subtitle="خيارات الحساب وإدارة المدرسة" accent={C.primary} onPress={() => setTab(\'settings\')} noBorder />'
-          )
-
-          if "tab === 'teacherFiles'" not in text:
-            text = text.replace(
-              "else if (tab === 'settings' && settingsSub === 'teachers') screen = <TeachersManagementScreen token={token} onBack={() => setSettingsSub(null)} />;",
-              "else if (tab === 'teacherFiles') screen = <TeacherFilesScreen token={token} onBack={() => goTab('home')} onOpenEvidence={(item) => setSelectedEvidence(item)} />;\n  else if (tab === 'settings' && settingsSub === 'teachers') screen = <TeachersManagementScreen token={token} onBack={() => setSettingsSub(null)} />;",
-              1
-            )
-          text = text.replace("else if (tab === 'settings' && settingsSub === 'teacherFiles') screen = <TeacherFilesScreen token={token} onBack={() => setSettingsSub(null)} onOpenEvidence={(item) => setSelectedEvidence(item)} />;\n  ", "")
-          text = text.replace("function goTab(next) { setSettingsSub(null); setTab(next); }", "function goTab(next) { setSettingsSub(null); setSelectedEvidence(null); setTab(next); }")
-
-          p.write_text(text)
-          if not all(s in text for s in ['حسب المعايير', 'متابعة المعلمات', "teacherFiles"]):
-            raise SystemExit('mobile tabs patch verification failed')
-          print('Mobile tabs patch applied for APK build')
-          PY
+          python3 scripts/patch_mobile_settings_managers.py
+          grep -n "إدارة المعلمات\|إضافة معلمة\|إدارة المعايير\|managerTeacherRow\|settingsSub === 'teachers'\|settingsSub === 'criteria'" mobile/App.js | head -80
       - name: Prebuild Android project
         working-directory: mobile
         run: npx expo prebuild --platform android --clean --non-interactive
