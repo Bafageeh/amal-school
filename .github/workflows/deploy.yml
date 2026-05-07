@@ -155,6 +155,7 @@ jobs:
             php artisan db:seed --class=TeacherAccountsSeeder --force || true
             python3 scripts/patch_mobile_labels_school.py || true
             python3 scripts/patch_mobile_settings_requested.py || true
+            python3 scripts/patch_mobile_teacher_add_edit_flow.py || true
             CACHE_STORE=file php artisan optimize:clear
             CACHE_STORE=file php artisan config:cache
             CACHE_STORE=file php artisan view:cache
