@@ -1,0 +1,133 @@
+name: Direct Amal mobile tabs patch
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: amal-mobile-tabs-direct
+  cancel-in-progress: true
+
+jobs:
+  patch-and-restart:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Prepare SSH
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_PRIVATE_KEY: ${{ secrets.AMAL_SSH_PRIVATE_KEY }}
+          SSH_PRIVATE_KEY_B64: ${{ secrets.AMAL_SSH_PRIVATE_KEY_B64 }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          SSH_PORT="${SSH_PORT:-22}"
+          KEY_FILE="$HOME/.ssh/amal_github_actions"
+          [ -n "${SSH_HOST:-}" ] || { echo "::error::Missing AMAL_SSH_HOST"; exit 1; }
+          mkdir -p "$HOME/.ssh"
+          if [ -n "${SSH_PRIVATE_KEY:-}" ]; then
+            printf '%s' "$SSH_PRIVATE_KEY" > "$KEY_FILE"
+            python3 -c 'import pathlib,sys; p=pathlib.Path(sys.argv[1]); s=p.read_text(); s=s.replace("\\\\n","\n").replace("\r\n","\n").replace("\r","\n"); p.write_text(s if s.endswith("\n") else s+"\n")' "$KEY_FILE"
+          elif [ -n "${SSH_PRIVATE_KEY_B64:-}" ]; then
+            printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d '\r\n ' | base64 -d > "$KEY_FILE"
+          else
+            echo "::error::Missing SSH key secret"
+            exit 1
+          fi
+          chmod 600 "$KEY_FILE"
+          ssh-keygen -y -f "$KEY_FILE" >/dev/null
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> "$HOME/.ssh/known_hosts"
+
+      - name: Patch server mobile app and restart Expo
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_USER: ${{ secrets.AMAL_SSH_USER }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+          PROJECT_PATH_SECRET: ${{ secrets.AMAL_PROJECT_PATH }}
+        run: |
+          set -euo pipefail
+          SSH_PORT="${SSH_PORT:-22}"
+          KEY_FILE="$HOME/.ssh/amal_github_actions"
+          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
+          PROJECT_PATH="${PROJECT_PATH_SECRET:-}"
+          CANDIDATES="${SSH_USER:-} pmsa root"
+          if [[ "${PROJECT_PATH:-}" == /mnt/* ]]; then CANDIDATES="root ${SSH_USER:-} pmsa"; fi
+          DEPLOY_USER=""
+          for candidate in $CANDIDATES; do
+            [ -z "$candidate" ] && continue
+            if ssh $SSH_OPTS "$candidate@$SSH_HOST" "echo connected" >/dev/null 2>&1; then DEPLOY_USER="$candidate"; break; fi
+          done
+          [ -n "$DEPLOY_USER" ] || { echo "::error::SSH authentication failed"; exit 1; }
+          if [ -z "${PROJECT_PATH:-}" ]; then
+            PROJECT_PATH=$(ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" 'for path in /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api /home/pmsa/apps/amal-school/amal-school-api /mnt/home-storage/home/pmsa/apps/amal-school-api /home/pmsa/apps/amal-school-api; do [ -f "$path/artisan" ] && echo "$path" && exit 0; done; echo /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api')
+          fi
+
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "PROJECT_PATH='$PROJECT_PATH' DEPLOY_USER='$DEPLOY_USER' bash -s" <<'SH'
+          set -euo pipefail
+          APP_FILE="$PROJECT_PATH/mobile/App.js"
+          [ -f "$APP_FILE" ] || APP_FILE="/home/pmsa/apps/amal-school/amal-school-api/mobile/App.js"
+          [ -f "$APP_FILE" ] || { echo "::error::mobile/App.js not found"; exit 1; }
+
+          python3 - "$APP_FILE" <<'PY'
+import re
+import sys
+from pathlib import Path
+p = Path(sys.argv[1])
+text = p.read_text()
+
+text = text.replace('title="معايير التقييم" subtitle={isPrincipal ? \'عرض ملفات المعلمات\' : \'عرض ورفع الملفات\'}', 'title="حسب المعايير" subtitle={isPrincipal ? \'عرض الملفات حسب كل معيار\' : \'عرض ورفع الملفات\'}')
+text = text.replace('<Text style={styles.pageTitle}>معايير التقييم</Text>', '<Text style={styles.pageTitle}>حسب المعايير</Text>')
+text = text.replace('<AdminBackHeader title="متابعة ملفات المعلمات" onBack={onBack} />', '<AdminBackHeader title="متابعة المعلمات" onBack={onBack} />')
+
+text = text.replace(
+  '<ActionRow icon="people-outline" title="المعلمات" subtitle="إضافة وتعديل وحذف حسابات المعلمات" accent={C.primary} onPress={onOpenTeachers} /><ActionRow icon="folder-open-outline" title="متابعة ملفات المعلمات" subtitle="استعراض ملفات كل معلمة حسب المعيار" accent={C.gold} onPress={onOpenTeacherFiles} noBorder />',
+  '<ActionRow icon="people-outline" title="المعلمات" subtitle="إضافة وتعديل وحذف حسابات المعلمات" accent={C.primary} onPress={onOpenTeachers} noBorder />'
+)
+text = text.replace('function SettingsScreen({ user, onLogout, onOpenTeachers, onOpenTeacherFiles })', 'function SettingsScreen({ user, onLogout, onOpenTeachers })')
+text = text.replace("<SettingsScreen user={user} onLogout={onLogout} onOpenTeachers={() => setSettingsSub('teachers')} onOpenTeacherFiles={() => setSettingsSub('teacherFiles')} />", "<SettingsScreen user={user} onLogout={onLogout} onOpenTeachers={() => setSettingsSub('teachers')} />")
+
+new_bottom = """function BottomNav({ tab, setTab, isPrincipal }) {
+  const tabs = [{ id: 'home', icon: 'home', iconOff: 'home-outline', label: 'الرئيسية' }, { id: 'evidence', icon: 'list', iconOff: 'list-outline', label: 'حسب المعايير' }, ...(isPrincipal ? [{ id: 'teacherFiles', icon: 'folder-open', iconOff: 'folder-open-outline', label: 'متابعة المعلمات' }] : []), { id: 'settings', icon: 'settings', iconOff: 'settings-outline', label: 'الإعدادات' }];
+  return <View style={styles.bottomNavWrap}><View style={styles.bottomNav}>{tabs.map((t) => { const active = tab === t.id; return <TouchableOpacity key={t.id} style={[styles.navTab, active && styles.navTabActive]} onPress={() => setTab(t.id)} activeOpacity={0.8}><Ionicons name={active ? t.icon : t.iconOff} size={21} color={active ? C.primary : C.muted} /><Text style={[styles.navLabel, active && styles.navLabelActive]} numberOfLines={1}>{t.label}</Text></TouchableOpacity>; })}</View></View>;
+}"""
+text = re.sub(r'function BottomNav\(\{ tab, setTab, isPrincipal \}\) \{.*?\n\}\n\nfunction MainApp', new_bottom + '\n\nfunction MainApp', text, flags=re.S, count=1)
+
+text = text.replace(
+  '<ActionRow icon="checkmark-done-circle-outline" title="حسب المعايير" subtitle={isPrincipal ? \'عرض الملفات حسب كل معيار\' : \'عرض ورفع الملفات\'} accent={C.teal} onPress={() => setTab(\'evidence\')} />\n        {isPrincipal && <ActionRow icon="settings-outline" title="الإعدادات" subtitle="إدارة المدرسة" accent={C.gold} onPress={() => setTab(\'settings\')} noBorder />}',
+  '<ActionRow icon="checkmark-done-circle-outline" title="حسب المعايير" subtitle={isPrincipal ? \'عرض الملفات حسب كل معيار\' : \'عرض ورفع الملفات\'} accent={C.teal} onPress={() => setTab(\'evidence\')} />\n        {isPrincipal && <ActionRow icon="folder-open-outline" title="متابعة المعلمات" subtitle="اختيار معلمة ثم معيار لعرض ملفاتها" accent={C.gold} onPress={() => setTab(\'teacherFiles\')} />}\n        <ActionRow icon="settings-outline" title="الإعدادات" subtitle="خيارات الحساب وإدارة المدرسة" accent={C.primary} onPress={() => setTab(\'settings\')} noBorder />'
+)
+
+if "tab === 'teacherFiles'" not in text:
+    text = text.replace(
+      "else if (tab === 'settings' && settingsSub === 'teachers') screen = <TeachersManagementScreen token={token} onBack={() => setSettingsSub(null)} />;",
+      "else if (tab === 'teacherFiles') screen = <TeacherFilesScreen token={token} onBack={() => goTab('home')} onOpenEvidence={(item) => setSelectedEvidence(item)} />;\n  else if (tab === 'settings' && settingsSub === 'teachers') screen = <TeachersManagementScreen token={token} onBack={() => setSettingsSub(null)} />;",
+      1
+    )
+text = text.replace("else if (tab === 'settings' && settingsSub === 'teacherFiles') screen = <TeacherFilesScreen token={token} onBack={() => setSettingsSub(null)} onOpenEvidence={(item) => setSelectedEvidence(item)} />;\n  ", "")
+text = text.replace("function goTab(next) { setSettingsSub(null); setTab(next); }", "function goTab(next) { setSettingsSub(null); setSelectedEvidence(null); setTab(next); }")
+
+p.write_text(text)
+print('MOBILE_TABS_FIX_APPLIED')
+print('APP_FILE=' + str(p))
+PY
+
+          if grep -q "متابعة المعلمات" "$APP_FILE" && grep -q "حسب المعايير" "$APP_FILE" && grep -q "teacherFiles" "$APP_FILE"; then
+            echo "Verified mobile tab labels in App.js"
+          else
+            echo "::error::Patch verification failed"
+            exit 1
+          fi
+
+          run_as_pmsa() {
+            if [ "${DEPLOY_USER:-}" = "root" ]; then su -s /bin/bash pmsa -c "$1"; else bash -lc "$1"; fi
+          }
+          MOBILE_PATH="$PROJECT_PATH/mobile"
+          [ -d "$MOBILE_PATH" ] || MOBILE_PATH="/home/pmsa/apps/amal-school/amal-school-api/mobile"
+          run_as_pmsa "pkill -f 'expo.*8081|metro.*8081|node.*8081|@expo/cli.*8081' || true"
+          if command -v lsof >/dev/null 2>&1; then run_as_pmsa "lsof -ti:8081 | xargs -r kill -9 || true"; fi
+          run_as_pmsa "cd '$MOBILE_PATH' && mkdir -p /home/pmsa/apps/.cache /home/pmsa/apps/.tmp && nohup env BROWSER=none EXPO_NO_TELEMETRY=1 REACT_NATIVE_PACKAGER_HOSTNAME=amal.pm.sa XDG_CACHE_HOME=/home/pmsa/apps/.cache TMPDIR=/home/pmsa/apps/.tmp TMP=/home/pmsa/apps/.tmp TEMP=/home/pmsa/apps/.tmp npx expo start --clear --go --host lan --port 8081 > /home/pmsa/apps/amal-school-expo.log 2>&1 < /dev/null &"
+          sleep 8
+          run_as_pmsa "tail -n 80 /home/pmsa/apps/amal-school-expo.log || true"
+          SH
