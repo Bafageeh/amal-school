@@ -50,31 +50,36 @@ jobs:
         run: |
           set -euo pipefail
           SSH_PORT="${SSH_PORT:-22}"
-          SSH_USER="${SSH_USER:-pmsa}"
+          REQUESTED_USER="${SSH_USER:-pmsa}"
           PROJECT_PATH="${PROJECT_PATH:-/mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
           SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
-          if ! ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" "echo ok" >/dev/null 2>&1; then
-            SSH_USER=root
-          fi
+          SSH_USER=""
+          for candidate in root "$REQUESTED_USER" pmsa; do
+            [ -z "$candidate" ] && continue
+            if ssh $SSH_OPTS "$candidate@$SSH_HOST" "echo ok" >/dev/null 2>&1; then
+              SSH_USER="$candidate"
+              break
+            fi
+          done
+          [ -n "$SSH_USER" ] || { echo "::error::SSH authentication failed"; exit 1; }
           scp -o BatchMode=yes -o IdentitiesOnly=yes -i "$KEY_FILE" -P "$SSH_PORT" scripts/patch_mobile_settings_managers.py "$SSH_USER@$SSH_HOST:/tmp/patch_mobile_settings_managers.py"
           ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" "PROJECT_PATH='$PROJECT_PATH' SSH_USER='$SSH_USER' bash -s" <<'SH'
           set -euo pipefail
           cd "$PROJECT_PATH"
           python3 /tmp/patch_mobile_settings_managers.py
           grep -n "إضافة معلمة\|إدارة المعايير\|CriteriaManagementScreen\|settingsSub === 'criteria'\|trash-outline\|pencil-outline\|save-outline" mobile/App.js | head -80
-          if [ "${SSH_USER:-}" = "root" ]; then
-            RUN="su -s /bin/bash pmsa -c"
-          else
-            RUN="bash -lc"
+          pkill -f 'expo.*8090|metro.*8090|node.*8090|@expo/cli.*8090' || true
+          if command -v lsof >/dev/null 2>&1; then
+            for pid in $(lsof -ti:8090 2>/dev/null || true); do
+              kill -9 "$pid" 2>/dev/null || true
+            done
           fi
-          $RUN "pkill -f 'expo.*8090|metro.*8090|node.*8090|@expo/cli.*8090' || true"
-          if command -v lsof >/dev/null 2>&1; then $RUN "lsof -ti:8090 | xargs -r kill -9 || true"; fi
           rm -rf /home/pmsa/apps/.tmp/metro-cache
           mkdir -p /home/pmsa/apps/.cache /home/pmsa/apps/.tmp
           chown -R pmsa:pmsa /home/pmsa/apps/.cache /home/pmsa/apps/.tmp || true
           chmod -R u+rwX /home/pmsa/apps/.cache /home/pmsa/apps/.tmp || true
-          $RUN "cd /home/pmsa/apps/amal-school/amal-school-api/mobile && nohup env BROWSER=none EXPO_NO_TELEMETRY=1 REACT_NATIVE_PACKAGER_HOSTNAME=amal.pm.sa XDG_CACHE_HOME=/home/pmsa/apps/.cache TMPDIR=/home/pmsa/apps/.tmp TMP=/home/pmsa/apps/.tmp TEMP=/home/pmsa/apps/.tmp npx expo start --clear --go --host lan --port 8090 > /home/pmsa/apps/amal-school-expo.log 2>&1 < /dev/null &"
+          su -s /bin/bash pmsa -c "cd /home/pmsa/apps/amal-school/amal-school-api/mobile && nohup env BROWSER=none EXPO_NO_TELEMETRY=1 REACT_NATIVE_PACKAGER_HOSTNAME=amal.pm.sa XDG_CACHE_HOME=/home/pmsa/apps/.cache TMPDIR=/home/pmsa/apps/.tmp TMP=/home/pmsa/apps/.tmp TEMP=/home/pmsa/apps/.tmp npx expo start --clear --go --host lan --port 8090 > /home/pmsa/apps/amal-school-expo.log 2>&1 < /dev/null &"
           sleep 10
           tail -n 80 /home/pmsa/apps/amal-school-expo.log
           SH
