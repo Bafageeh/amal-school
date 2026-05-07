@@ -1,7 +1,11 @@
 from pathlib import Path
+import os
 
-APP_PATHS = [
-    Path('mobile/App.js'),
+project = os.environ.get('PROJECT_PATH')
+APP_PATHS = [Path('mobile/App.js')]
+if project:
+    APP_PATHS.insert(0, Path(project) / 'mobile' / 'App.js')
+APP_PATHS += [
     Path('/mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api/mobile/App.js'),
     Path('/home/pmsa/apps/amal-school/amal-school-api/mobile/App.js'),
 ]
