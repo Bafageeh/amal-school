@@ -1,1 +1,1 @@
-Deploy trigger: 2026-05-03 restart mobile Expo after settings touch fix
+Deploy trigger: 2026-05-07 apply mobile tabs teacher follow-up
