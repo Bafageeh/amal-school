@@ -6,7 +6,7 @@ p = next((x for x in APP_PATHS if x.exists()), None)
 if p is None:
     raise SystemExit('mobile/App.js not found')
 text = p.read_text()
-p.with_suffix('.js.backup-before-teacherfiles-criteria').write_text(text)
+p.with_suffix('.js.backup-before-robust-teacherfiles').write_text(text)
 
 screen = '''
 function TeacherFilesScreen({ token, onBack, onOpenEvidence }) {
@@ -96,9 +96,20 @@ function TeacherFilesScreen({ token, onBack, onOpenEvidence }) {
 }
 '''
 
-text = re.sub(r"function TeacherFilesScreen\(\{.*?\n\}\n\nfunction MainApp", screen + "\n\nfunction MainApp", text, flags=re.S, count=1)
-if 'function TeacherFilesScreen' not in text:
-    text = text.replace('function MainApp', screen + '\nfunction MainApp', 1)
+def replace_function(src, name, body):
+    start = src.find('function ' + name)
+    if start == -1:
+        return src.replace('function MainApp', body + '\n\nfunction MainApp', 1)
+    next_match = re.search(r'\nfunction\s+\w+', src[start + 1:])
+    if next_match:
+        end = start + 1 + next_match.start()
+        return src[:start] + body + '\n' + src[end:]
+    main = src.find('function MainApp', start)
+    if main != -1 and main > start:
+        return src[:start] + body + '\n\n' + src[main:]
+    raise SystemExit('could not replace ' + name)
+
+text = replace_function(text, 'TeacherFilesScreen', screen)
 
 if 'adminBackHeader:' not in text:
     idx = text.rfind('\n});')
@@ -124,4 +135,4 @@ p.write_text(text)
 for item in ['function TeacherFilesScreen', 'openTeacher', 'setSelectedTeacher', 'teacher_uploads_count', 'onPress={() => openTeacher(teacher)}', "tab === 'teacherFiles'"]:
     if item not in text:
         raise SystemExit('missing ' + item)
-print('teacher criteria open from follow-up screen fixed in', p)
+print('TeacherFilesScreen fully replaced with clickable criteria flow in', p)
