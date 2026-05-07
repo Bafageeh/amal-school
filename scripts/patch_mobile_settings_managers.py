@@ -6,7 +6,7 @@ p = next((x for x in APP_PATHS if x.exists()), None)
 if p is None:
     raise SystemExit('mobile/App.js not found')
 text = p.read_text()
-p.with_suffix('.js.backup-before-teacherfiles-simple').write_text(text)
+p.with_suffix('.js.backup-before-gotab-fix').write_text(text)
 
 screen = '''
 function TeacherFilesScreen({ token, onBack }) {
@@ -46,9 +46,22 @@ function TeacherFilesScreen({ token, onBack }) {
   );
 }
 '''
-
 if 'function TeacherFilesScreen' not in text:
     text = text.replace('function MainApp', screen + '\nfunction MainApp', 1)
+
+# Ensure helper state and goTab exist inside MainApp.
+if 'const [settingsSub, setSettingsSub] = useState(null);' not in text:
+    text = text.replace("const [tab, setTab] = useState('home');", "const [tab, setTab] = useState('home');\n  const [settingsSub, setSettingsSub] = useState(null);", 1)
+
+if 'function goTab(next)' not in text:
+    marker = 'let screen;'
+    if marker not in text:
+        marker = 'if (loading) screen ='
+    if marker not in text:
+        raise SystemExit('goTab insertion marker not found')
+    text = text.replace(marker, "function goTab(next) { setSettingsSub(null); setSelectedEvidence(null); setTab(next); }\n\n  " + marker, 1)
+else:
+    text = re.sub(r"function goTab\(next\) \{.*?\}", "function goTab(next) { setSettingsSub(null); setSelectedEvidence(null); setTab(next); }", text, count=1, flags=re.S)
 
 route = "else if (tab === 'teacherFiles') screen = <TeacherFilesScreen token={token} onBack={() => goTab('home')} onOpenEvidence={(item) => setSelectedEvidence(item)} />;"
 text = re.sub(r"\n\s*else if \(tab === 'teacherFiles'\) screen = <TeacherFilesScreen[^;]*;", "", text)
@@ -64,7 +77,7 @@ if "id: 'teacherFiles'" not in text:
     text = text.replace("{ id: 'evidence', icon: 'list', iconOff: 'list-outline', label: 'حسب المعايير' },", "{ id: 'evidence', icon: 'list', iconOff: 'list-outline', label: 'حسب المعايير' },\n    ...(isPrincipal ? [{ id: 'teacherFiles', icon: 'folder-open', iconOff: 'folder-open-outline', label: 'متابعة المعلمات' }] : []),", 1)
 
 p.write_text(text)
-for item in ['function TeacherFilesScreen', "tab === 'teacherFiles'", "id: 'teacherFiles'", 'متابعة المعلمات']:
+for item in ['function TeacherFilesScreen', 'function goTab(next)', "tab === 'teacherFiles'", "id: 'teacherFiles'", 'setTab={goTab}', 'متابعة المعلمات']:
     if item not in text:
         raise SystemExit('missing ' + item)
-print('simple TeacherFilesScreen fixed in', p)
+print('goTab and TeacherFilesScreen fixed in', p)
