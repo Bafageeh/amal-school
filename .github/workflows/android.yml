@@ -9,6 +9,13 @@ on:
       - mobile/**
       - scripts/patch_mobile_settings_managers.py
       - .github/workflows/android.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - mobile/**
+      - scripts/patch_mobile_settings_managers.py
+      - .github/workflows/android.yml
 
 jobs:
   apk:
