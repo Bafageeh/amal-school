@@ -25,15 +25,15 @@ jobs:
               PROJECT_PATH="/mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api"
             fi
             echo "Project: $PROJECT_PATH"
-            echo "Stopping old Expo/Metro safely..."
+            echo "Stopping only processes listening on 8081/8090..."
             if command -v lsof >/dev/null 2>&1; then
-              lsof -ti:8081 | xargs -r kill -9 || true
-              lsof -ti:8090 | xargs -r kill -9 || true
+              PIDS="$(lsof -ti:8081 -ti:8090 2>/dev/null || true)"
+              if [ -n "$PIDS" ]; then
+                echo "$PIDS" | xargs -r kill -9 || true
+              fi
+            elif command -v fuser >/dev/null 2>&1; then
+              fuser -k 8081/tcp 8090/tcp || true
             fi
-            pgrep -f '[e]xpo start' | xargs -r kill -9 || true
-            pgrep -f '[m]etro' | xargs -r kill -9 || true
-            pgrep -f 'node.*:8081' | xargs -r kill -9 || true
-            pgrep -f 'node.*:8090' | xargs -r kill -9 || true
             cd "$PROJECT_PATH/mobile"
             rm -rf .expo node_modules/.cache /home/pmsa/apps/.cache/metro /home/pmsa/apps/.cache/expo
             mkdir -p /home/pmsa/apps/.cache /home/pmsa/apps/.tmp
