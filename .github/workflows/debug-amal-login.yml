@@ -1,0 +1,32 @@
+name: Debug Amal Login API
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check login endpoint and Laravel log
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.AMAL_SSH_HOST }}
+          username: ${{ secrets.AMAL_SSH_USER }}
+          key: ${{ secrets.AMAL_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.AMAL_SSH_PORT }}
+          script: |
+            PROJECT_PATH="${{ secrets.AMAL_PROJECT_PATH }}"
+            if [ -z "$PROJECT_PATH" ]; then
+              PROJECT_PATH="/mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api"
+            fi
+            cd "$PROJECT_PATH"
+            echo "=== route exists ==="
+            php artisan route:list | grep 'mobile-api/v1/login' || true
+            echo "=== db columns ==="
+            php artisan tinker --execute="echo json_encode(Schema::getColumnListing('users'), JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT).PHP_EOL;"
+            echo "=== users ==="
+            php artisan tinker --execute="App\\Models\\User::query()->select('id','name','username','role','school_id')->get()->each(fn(\$u)=>print(json_encode(\$u->toArray(), JSON_UNESCAPED_UNICODE).PHP_EOL));"
+            echo "=== test login ==="
+            curl -k -sS -i -X POST https://amal.pm.sa/mobile-api/v1/login -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"username":"admin","password":"1234"}' || true
+            echo "=== latest laravel log ==="
+            tail -120 storage/logs/laravel.log || true
