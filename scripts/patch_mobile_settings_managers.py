@@ -12,9 +12,11 @@ if p is None:
     raise SystemExit('mobile/App.js not found')
 
 text = p.read_text()
-p.with_suffix('.js.backup-before-teacherfiles-route').write_text(text)
+p.with_suffix('.js.backup-before-force-teacherfiles-screen').write_text(text)
 
-# Ensure the bottom tab exists and is named متابعة المعلمات.
+route = "else if (tab === 'teacherFiles') screen = <TeacherFilesScreen token={token} onBack={() => goTab('home')} onOpenEvidence={(item) => setSelectedEvidence(item)} />;"
+
+# Ensure bottom tab exists.
 if "id: 'teacherFiles'" not in text:
     text = text.replace(
         "{ id: 'evidence', icon: 'list', iconOff: 'list-outline', label: 'حسب المعايير' },",
@@ -22,44 +24,50 @@ if "id: 'teacherFiles'" not in text:
         1,
     )
 
-# Ensure changing tabs closes settings sub-screens and evidence details.
-text = text.replace(
-    "function goTab(next) { setSettingsSub(null); setTab(next); }",
+# Make sure goTab clears old sub screens/details.
+text = re.sub(
+    r"function goTab\(next\) \{.*?\}",
     "function goTab(next) { setSettingsSub(null); setSelectedEvidence(null); setTab(next); }",
-)
-text = text.replace(
-    "function goTab(next) { setSelectedEvidence(null); setTab(next); }",
-    "function goTab(next) { setSettingsSub(null); setSelectedEvidence(null); setTab(next); }",
+    text,
+    count=1,
+    flags=re.S,
 )
 
-# Force bottom tab teacherFiles to open TeacherFilesScreen directly.
-route = "else if (tab === 'teacherFiles') screen = <TeacherFilesScreen token={token} onBack={() => goTab('home')} onOpenEvidence={(item) => setSelectedEvidence(item)} />;"
+# Remove any existing teacherFiles route, then insert it before evidence/settings/home selection.
+text = re.sub(r"\n\s*else if \(tab === 'teacherFiles'\) screen = <TeacherFilesScreen[^;]*;", "", text)
+
+patterns = [
+    "else if (tab === 'evidence')",
+    "else if (tab === 'settings'",
+    "else screen = <HomeScreen",
+]
+for marker in patterns:
+    pos = text.find(marker)
+    if pos != -1:
+        text = text[:pos] + route + "\n  " + text[pos:]
+        break
+else:
+    raise SystemExit('Could not insert teacherFiles screen route')
+
+# Ensure BottomNav uses goTab, not raw setTab, in MainApp.
 text = re.sub(
-    r"else if \(tab === 'teacherFiles'\) screen = <TeacherFilesScreen[^;]*;",
-    route,
+    r"<BottomNav tab=\{tab\} setTab=\{[^}]+\} isPrincipal=\{isPrincipal\} />",
+    "<BottomNav tab={tab} setTab={goTab} isPrincipal={isPrincipal} />",
     text,
     count=1,
 )
-if route not in text:
-    marker = "else if (tab === 'settings'"
-    pos = text.find(marker)
-    if pos == -1:
-        marker = "else if (tab === 'evidence')"
-        pos = text.find(marker)
-    if pos == -1:
-        raise SystemExit('Could not find route insertion point')
-    text = text[:pos] + route + "\n  " + text[pos:]
 
-# Do not show the invalid-session popup inside teacher follow-up; keep the screen open.
-old = "Alert.alert('تعذر تحميل المعلمات', error.message);"
-new = "if (String(error.message || '').includes('جلسة الجوال') || String(error.message || '').includes('غير مصرح')) { setTeachers([]); } else { Alert.alert('تعذر تحميل المعلمات', error.message); }"
-text = text.replace(old, new)
+# Keep invalid session popup quiet on the follow-up screen.
+text = text.replace(
+    "Alert.alert('تعذر تحميل المعلمات', error.message);",
+    "if (String(error.message || '').includes('جلسة الجوال') || String(error.message || '').includes('غير مصرح')) { setTeachers([]); } else { Alert.alert('تعذر تحميل المعلمات', error.message); }"
+)
 
 p.write_text(text)
 
-required = ["id: 'teacherFiles'", "label: 'متابعة المعلمات'", "tab === 'teacherFiles'", "TeacherFilesScreen"]
-missing = [x for x in required if x not in text]
+required = ["id: 'teacherFiles'", "label: 'متابعة المعلمات'", route, "setTab={goTab}"]
+missing = [item for item in required if item not in text]
 if missing:
-    raise SystemExit('teacherFiles bottom tab route patch failed, missing: ' + ', '.join(missing))
+    raise SystemExit('teacherFiles route fix failed, missing: ' + ', '.join(missing))
 
-print('teacherFiles bottom tab now opens TeacherFilesScreen in', p)
+print('teacherFiles bottom tab is forced to TeacherFilesScreen in', p)
