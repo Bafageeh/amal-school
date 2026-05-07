@@ -41,55 +41,31 @@ jobs:
           set -euo pipefail
           SSH_PORT="${SSH_PORT:-22}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
-
           if [ -z "${SSH_HOST:-}" ]; then
             echo "::error::Missing GitHub secret AMAL_SSH_HOST"
             exit 1
           fi
-
           mkdir -p "$HOME/.ssh"
-
-          normalize_plain_key() {
-            local target="$1"
-            python3 -c 'import pathlib, sys; p=pathlib.Path(sys.argv[1]); text=p.read_text(); text=text.replace("\\\\r", "\r").replace("\\\\n", "\n"); text=text.replace("\r\n", "\n").replace("\r", "\n"); p.write_text(text if text.endswith("\n") else text + "\n")' "$target"
+          normalize_key() {
+            python3 -c 'import pathlib, sys; p=pathlib.Path(sys.argv[1]); text=p.read_text(); text=text.replace("\\\\r", "\r").replace("\\\\n", "\n"); text=text.replace("\r\n", "\n").replace("\r", "\n"); p.write_text(text if text.endswith("\n") else text + "\n")' "$1"
           }
-
-          validate_key() {
-            local target="$1"
-            chmod 600 "$target"
-            ssh-keygen -y -f "$target" >/dev/null 2>&1
-          }
-
           KEY_OK=0
-
           if [ -n "${SSH_PRIVATE_KEY:-}" ]; then
             printf '%s' "$SSH_PRIVATE_KEY" > "$KEY_FILE"
-            normalize_plain_key "$KEY_FILE"
-            if validate_key "$KEY_FILE"; then
-              KEY_OK=1
-            else
-              echo "::warning::AMAL_SSH_PRIVATE_KEY is not a usable private key. Trying AMAL_SSH_PRIVATE_KEY_B64 if available."
-            fi
+            normalize_key "$KEY_FILE"
+            chmod 600 "$KEY_FILE"
+            ssh-keygen -y -f "$KEY_FILE" >/dev/null 2>&1 && KEY_OK=1 || true
           fi
-
           if [ "$KEY_OK" != "1" ] && [ -n "${SSH_PRIVATE_KEY_B64:-}" ]; then
-            if printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d '\r\n ' | base64 -d > "$KEY_FILE" 2>/tmp/amal_key_decode_error; then
-              normalize_plain_key "$KEY_FILE"
-              if validate_key "$KEY_FILE"; then
-                KEY_OK=1
-              else
-                echo "::warning::AMAL_SSH_PRIVATE_KEY_B64 decoded but is not a usable private key."
-              fi
-            else
-              echo "::warning::AMAL_SSH_PRIVATE_KEY_B64 is not valid base64."
-            fi
+            printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d '\r\n ' | base64 -d > "$KEY_FILE"
+            normalize_key "$KEY_FILE"
+            chmod 600 "$KEY_FILE"
+            ssh-keygen -y -f "$KEY_FILE" >/dev/null 2>&1 && KEY_OK=1 || true
           fi
-
           if [ "$KEY_OK" != "1" ]; then
-            echo "::error::No usable SSH private key found. Store the full private key in AMAL_SSH_PRIVATE_KEY, or store base64 -w0 of the private key in AMAL_SSH_PRIVATE_KEY_B64. Do not use the public key here."
+            echo "::error::No usable SSH private key found."
             exit 1
           fi
-
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> "$HOME/.ssh/known_hosts"
 
       - name: Detect server user and project path
@@ -103,66 +79,40 @@ jobs:
           SSH_PORT="${SSH_PORT:-22}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
           SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
-
-          if [ -n "${PROJECT_PATH_SECRET:-}" ]; then
-            PROJECT_PATH="$PROJECT_PATH_SECRET"
-          else
-            PROJECT_PATH=""
-          fi
-
+          PROJECT_PATH="${PROJECT_PATH_SECRET:-}"
+          DEPLOY_USER=""
           if [[ "${PROJECT_PATH:-}" == /mnt/* ]]; then
             CANDIDATES="root ${SSH_USER:-} pmsa"
           else
             CANDIDATES="${SSH_USER:-} pmsa root"
           fi
-
-          DEPLOY_USER=""
           for candidate in $CANDIDATES; do
-            if [ -z "$candidate" ]; then
-              continue
-            fi
-
-            echo "Trying SSH user: $candidate"
+            [ -z "$candidate" ] && continue
             if ssh $SSH_OPTS "$candidate@$SSH_HOST" "echo connected" >/dev/null 2>&1; then
               DEPLOY_USER="$candidate"
               break
             fi
           done
-
           if [ -z "$DEPLOY_USER" ]; then
-            echo "::error::SSH authentication failed for candidate users. If AMAL_PROJECT_PATH starts with /mnt, authorize the SSH key for root or set AMAL_SSH_USER=root."
+            echo "::error::SSH authentication failed."
             exit 1
           fi
-
-          echo "DEPLOY_USER=$DEPLOY_USER" >> "$GITHUB_ENV"
-          echo "Using SSH user: $DEPLOY_USER"
-
-          if [ -z "${PROJECT_PATH:-}" ]; then
+          if [ -z "$PROJECT_PATH" ]; then
             PROJECT_PATH=$(ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" 'set -e
               for path in \
-                /mnt/home-storage/home/pmsa/apps/amal-school-api \
-                /home/pmsa/apps/amal-school-api \
                 /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api \
                 /home/pmsa/apps/amal-school/amal-school-api \
-                /var/www/amal-school-api \
-                /var/www/amal-school \
-                /var/www/html
+                /mnt/home-storage/home/pmsa/apps/amal-school-api \
+                /home/pmsa/apps/amal-school-api
               do
-                if [ -f "$path/artisan" ]; then
-                  echo "$path"
-                  exit 0
-                fi
+                if [ -f "$path/artisan" ]; then echo "$path"; exit 0; fi
               done
-              echo /mnt/home-storage/home/pmsa/apps/amal-school-api
+              echo /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api
             ')
           fi
-
-          if [ -z "$PROJECT_PATH" ]; then
-            echo "::error::Could not resolve project path. Add GitHub secret AMAL_PROJECT_PATH."
-            exit 1
-          fi
-
+          echo "DEPLOY_USER=$DEPLOY_USER" >> "$GITHUB_ENV"
           echo "PROJECT_PATH=$PROJECT_PATH" >> "$GITHUB_ENV"
+          echo "Using SSH user: $DEPLOY_USER"
           echo "Deploying to: $PROJECT_PATH"
 
       - name: Upload files to server
@@ -174,12 +124,9 @@ jobs:
           SSH_PORT="${SSH_PORT:-22}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
           SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
-
           ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH'"
-          rsync -az \
-            --delete \
+          rsync -az --delete \
             --exclude='.git/' \
-            --exclude='.github/deploy-trigger.txt' \
             --exclude='.env' \
             --exclude='vendor/' \
             --exclude='node_modules/' \
@@ -188,7 +135,7 @@ jobs:
             -e "ssh $SSH_OPTS" \
             ./ "$DEPLOY_USER@$SSH_HOST:$PROJECT_PATH/"
 
-      - name: Patch deployed mobile settings screen
+      - name: Run Laravel commands and patch labels
         env:
           SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
           SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
@@ -197,213 +144,37 @@ jobs:
           SSH_PORT="${SSH_PORT:-22}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
           SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
-
-          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "python3 - <<'PY'
-from pathlib import Path
-import re
-p = Path('$PROJECT_PATH/mobile/App.js')
-text = p.read_text()
-
-components = r'''
-function AdminBackHeader({ title, onBack }) {
-  return (
-    <View style={{ flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-      <Text style={styles.pageTitle}>{title}</Text>
-      <TouchableOpacity onPress={onBack} style={styles.headerLogoutBtn} activeOpacity={0.75}>
-        <Ionicons name="arrow-forward-outline" size={20} color={C.primary} />
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-function TeachersManagementScreen({ token, onBack }) {
-  const [loading, setLoading] = useState(true);
-  const [teachers, setTeachers] = useState([]);
-
-  useEffect(() => {
-    async function loadTeachers() {
-      setLoading(true);
-      try {
-        const data = await requestJson('/teachers', { token });
-        setTeachers(data.teachers || []);
-      } catch (error) {
-        Alert.alert('تعذر تحميل المعلمات', error.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadTeachers();
-  }, [token]);
-
-  return (
-    <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false}>
-      <AdminBackHeader title="المعلمات" onBack={onBack} />
-      <Text style={styles.pageSubtitle}>قائمة حسابات المعلمات في المدرسة</Text>
-      {loading ? (
-        <ActivityIndicator color={C.primary} size="large" style={{ marginTop: 30 }} />
-      ) : (
-        <View style={styles.listCard}>
-          {teachers.length === 0 ? (
-            <View style={styles.actionRow}>
-              <View style={styles.actionRowText}><Text style={styles.actionRowTitle}>لا توجد معلمات</Text></View>
-            </View>
-          ) : teachers.map((teacher, idx) => (
-            <View key={teacher.id} style={[styles.actionRow, idx === teachers.length - 1 && { borderBottomWidth: 0 }]}>
-              <View style={[styles.actionRowIcon, { backgroundColor: C.primaryLight }]}>
-                <Ionicons name="person-outline" size={20} color={C.primary} />
-              </View>
-              <View style={styles.actionRowText}>
-                <Text style={styles.actionRowTitle}>{teacher.name}</Text>
-                <Text style={styles.actionRowSub}>اسم المستخدم: {teacher.username || '—'} · الملفات: {teacher.uploads_count ?? 0}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      )}
-      <View style={{ height: 28 }} />
-    </ScrollView>
-  );
-}
-
-function TeacherFilesScreen({ token, onBack, onOpenEvidence }) {
-  const [loading, setLoading] = useState(true);
-  const [teachers, setTeachers] = useState([]);
-  const [selectedTeacher, setSelectedTeacher] = useState(null);
-  const [criteria, setCriteria] = useState([]);
-  const [criteriaLoading, setCriteriaLoading] = useState(false);
-
-  useEffect(() => {
-    async function loadTeachers() {
-      setLoading(true);
-      try {
-        const data = await requestJson('/teacher-evidence', { token });
-        setTeachers(data.teachers || []);
-      } catch (error) {
-        Alert.alert('تعذر تحميل المعلمات', error.message);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadTeachers();
-  }, [token]);
-
-  async function openTeacher(teacher) {
-    setSelectedTeacher(teacher);
-    setCriteriaLoading(true);
-    try {
-      const data = await requestJson('/teacher-evidence/' + teacher.id, { token });
-      setCriteria(data.items || []);
-    } catch (error) {
-      Alert.alert('تعذر تحميل ملفات المعلمة', error.message);
-    } finally {
-      setCriteriaLoading(false);
-    }
-  }
-
-  if (selectedTeacher) {
-    return (
-      <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false}>
-        <AdminBackHeader title={selectedTeacher.name} onBack={() => setSelectedTeacher(null)} />
-        <Text style={styles.pageSubtitle}>اختاري معيارًا لعرض الملفات الخاصة بالمعلمة</Text>
-        {criteriaLoading ? (
-          <ActivityIndicator color={C.primary} size="large" style={{ marginTop: 30 }} />
-        ) : (
-          <View style={styles.listCard}>
-            {criteria.map((item, idx) => (
-              <TouchableOpacity key={item.id} style={[styles.actionRow, idx === criteria.length - 1 && { borderBottomWidth: 0 }]} activeOpacity={0.8} onPress={() => onOpenEvidence(item)}>
-                <Ionicons name="chevron-back" size={16} color={C.border} />
-                <View style={styles.actionRowText}>
-                  <Text style={styles.actionRowTitle}>{item.title}</Text>
-                  <Text style={styles.actionRowSub}>ملفات هذه المعلمة: {item.teacher_uploads_count ?? 0}</Text>
-                </View>
-                <View style={[styles.actionRowIcon, { backgroundColor: C.primaryLight }]}>
-                  <Ionicons name="folder-open-outline" size={20} color={C.primary} />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-        <View style={{ height: 28 }} />
-      </ScrollView>
-    );
-  }
-
-  return (
-    <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false}>
-      <AdminBackHeader title="متابعة ملفات المعلمات" onBack={onBack} />
-      <Text style={styles.pageSubtitle}>اختاري المعلمة ثم المعيار لعرض الملفات</Text>
-      {loading ? (
-        <ActivityIndicator color={C.primary} size="large" style={{ marginTop: 30 }} />
-      ) : (
-        <View style={styles.listCard}>
-          {teachers.map((teacher, idx) => (
-            <TouchableOpacity key={teacher.id} style={[styles.actionRow, idx === teachers.length - 1 && { borderBottomWidth: 0 }]} activeOpacity={0.8} onPress={() => openTeacher(teacher)}>
-              <Ionicons name="chevron-back" size={16} color={C.border} />
-              <View style={styles.actionRowText}>
-                <Text style={styles.actionRowTitle}>{teacher.name}</Text>
-                <Text style={styles.actionRowSub}>عدد الملفات: {teacher.uploads_count ?? 0}</Text>
-              </View>
-              <View style={[styles.actionRowIcon, { backgroundColor: C.goldLight }]}>
-                <Ionicons name="folder-outline" size={20} color={C.gold} />
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-      <View style={{ height: 28 }} />
-    </ScrollView>
-  );
-}
-'''
-
-if 'function TeachersManagementScreen' not in text:
-    text = text.replace('function SettingsScreen({ user, onLogout }) {', components + '\nfunction SettingsScreen({ user, onLogout }) {', 1)
-
-text = text.replace('function SettingsScreen({ user, onLogout }) {', 'function SettingsScreen({ user, onLogout, onOpenTeachers, onOpenTeacherFiles }) {')
-text = text.replace('<ActionRow icon="people-outline" title="المعلمات" subtitle="إضافة وتعديل وحذف حسابات المعلمات" accent={C.primary} />', '<ActionRow icon="people-outline" title="المعلمات" subtitle="إضافة وتعديل وحذف حسابات المعلمات" accent={C.primary} onPress={onOpenTeachers} />')
-text = text.replace('<ActionRow icon="folder-open-outline" title="متابعة ملفات المعلمات" subtitle="استعراض ملفات كل معلمة حسب المعيار" accent={C.gold} noBorder />', '<ActionRow icon="folder-open-outline" title="متابعة ملفات المعلمات" subtitle="استعراض ملفات كل معلمة حسب المعيار" accent={C.gold} onPress={onOpenTeacherFiles} noBorder />')
-text = re.sub(r'\n\s*<Text style=\{styles\.settingsSectionLabel\}>التقارير</Text>\s*<View style=\{styles\.listCard\}>\s*<ActionRow icon="stats-chart-outline" title="إحصائيات الرفع" subtitle="نسبة اكتمال ملفات كل معلمة" accent=\{C\.teal\} />\s*<ActionRow icon="ribbon-outline" title="المعايير المكتملة" subtitle="المعايير التي اكتملت ملفاتها" accent=\{C\.green\} noBorder />\s*</View>', '', text, count=1)
-
-if 'const [settingsSub, setSettingsSub]' not in text:
-    text = text.replace('  const [selectedEvidence, setSelectedEvidence] = useState(null);\n', '  const [selectedEvidence, setSelectedEvidence] = useState(null);\n  const [settingsSub, setSettingsSub] = useState(null);\n', 1)
-
-old_branch = "else if (tab === 'settings') screen = <SettingsScreen user={user} onLogout={onLogout} />;"
-new_branch = "else if (tab === 'settings' && settingsSub === 'teachers') screen = <TeachersManagementScreen token={token} onBack={() => setSettingsSub(null)} />;\n  else if (tab === 'settings' && settingsSub === 'teacherFiles') screen = <TeacherFilesScreen token={token} onBack={() => setSettingsSub(null)} onOpenEvidence={(item) => setSelectedEvidence(item)} />;\n  else if (tab === 'settings') screen = <SettingsScreen user={user} onLogout={onLogout} onOpenTeachers={() => setSettingsSub('teachers')} onOpenTeacherFiles={() => setSettingsSub('teacherFiles')} />;"
-text = text.replace(old_branch, new_branch)
-
-p.write_text(text)
-PY"
-
-      - name: Run Laravel production commands
-        env:
-          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
-          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
-        run: |
-          set -euo pipefail
-          SSH_PORT="${SSH_PORT:-22}"
-          KEY_FILE="$HOME/.ssh/amal_github_actions"
-          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
-
           ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "set -e
             cd '$PROJECT_PATH'
-            pwd
-            php -v
-            if [ ! -f .env ]; then
-              echo '::error::.env is missing on the server project path.'
-              exit 1
-            fi
+            if [ ! -f .env ]; then echo '::error::.env is missing'; exit 1; fi
             if [ ! -f vendor/autoload.php ]; then
-              if command -v composer >/dev/null 2>&1; then
-                composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
-              else
-                echo '::error::vendor/autoload.php is missing and composer is not available on the server.'
-                exit 1
-              fi
+              composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
             fi
             mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
             php artisan migrate --force
             php artisan db:seed --class=TeacherAccountsSeeder --force || true
+            python3 scripts/patch_mobile_labels_school.py || true
             CACHE_STORE=file php artisan optimize:clear
             CACHE_STORE=file php artisan config:cache
             CACHE_STORE=file php artisan view:cache
+          "
+
+      - name: Clear Expo cache and restart Metro
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          SSH_PORT="${SSH_PORT:-22}"
+          KEY_FILE="$HOME/.ssh/amal_github_actions"
+          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "set -e
+            pkill -f 'expo|metro|node.*8081' || true
+            if command -v lsof >/dev/null 2>&1; then lsof -ti:8081 | xargs -r kill -9 || true; fi
+            cd '$PROJECT_PATH/mobile'
+            rm -rf .expo node_modules/.cache /home/pmsa/apps/.cache/metro /home/pmsa/apps/.cache/expo
+            mkdir -p /home/pmsa/apps/.cache /home/pmsa/apps/.tmp
+            nohup env BROWSER=none EXPO_NO_TELEMETRY=1 REACT_NATIVE_PACKAGER_HOSTNAME=amal.pm.sa XDG_CACHE_HOME=/home/pmsa/apps/.cache TMPDIR=/home/pmsa/apps/.tmp TMP=/home/pmsa/apps/.tmp TEMP=/home/pmsa/apps/.tmp npx expo start --clear --go --host lan --port 8081 > /home/pmsa/apps/amal-school-expo.log 2>&1 &
+            sleep 8
+            tail -80 /home/pmsa/apps/amal-school-expo.log || true
           "
