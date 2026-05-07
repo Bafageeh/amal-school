@@ -1,0 +1,38 @@
+name: Restart Amal Expo 8090
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/restart-expo-8090.yml'
+
+jobs:
+  restart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restart Expo on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.AMAL_SSH_HOST }}
+          username: ${{ secrets.AMAL_SSH_USER }}
+          key: ${{ secrets.AMAL_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.AMAL_SSH_PORT }}
+          script: |
+            set -e
+            PROJECT_PATH="${{ secrets.AMAL_PROJECT_PATH }}"
+            if [ -z "$PROJECT_PATH" ]; then
+              PROJECT_PATH="/mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api"
+            fi
+            pkill -f 'expo|metro|node.*8081|node.*8090' || true
+            if command -v lsof >/dev/null 2>&1; then
+              lsof -ti:8081 | xargs -r kill -9 || true
+              lsof -ti:8090 | xargs -r kill -9 || true
+            fi
+            cd "$PROJECT_PATH/mobile"
+            rm -rf .expo node_modules/.cache /home/pmsa/apps/.cache/metro /home/pmsa/apps/.cache/expo
+            mkdir -p /home/pmsa/apps/.cache /home/pmsa/apps/.tmp
+            nohup env BROWSER=none EXPO_NO_TELEMETRY=1 REACT_NATIVE_PACKAGER_HOSTNAME=amal.pm.sa XDG_CACHE_HOME=/home/pmsa/apps/.cache TMPDIR=/home/pmsa/apps/.tmp TMP=/home/pmsa/apps/.tmp TEMP=/home/pmsa/apps/.tmp npx expo start --clear --go --host lan --port 8090 > /home/pmsa/apps/amal-school-expo.log 2>&1 &
+            sleep 10
+            tail -100 /home/pmsa/apps/amal-school-expo.log
