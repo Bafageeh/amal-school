@@ -7,16 +7,9 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#EEF4FF",
-    "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#EEF4FF"
-    },
     "android": {
       "package": "sa.pm.amal.preview",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
       },
       "permissions": [
