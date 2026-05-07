@@ -1,9 +1,9 @@
 {
   "expo": {
     "name": "Amal Preview",
-    "slug": "amal-school",
-    "scheme": "amalpreview",
-    "version": "1.0.0",
+    "slug": "amal-school-clean",
+    "scheme": "amalpreviewclean",
+    "version": "1.0.3",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#EEF4FF",
@@ -17,7 +17,8 @@
       ]
     },
     "extra": {
-      "apiBaseUrl": "https://amal.pm.sa"
+      "apiBaseUrl": "https://amal.pm.sa",
+      "cacheKey": "amal-clean-20260507-1958"
     }
   }
 }
