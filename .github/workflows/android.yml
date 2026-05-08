@@ -8,6 +8,7 @@ on:
     paths:
       - mobile/**
       - scripts/patch_app_mobile_fixed_settings.py
+      - scripts/patch_app_mobile_fixed_v107.py
       - .github/workflows/android.yml
   pull_request:
     branches:
@@ -15,6 +16,7 @@ on:
     paths:
       - mobile/**
       - scripts/patch_app_mobile_fixed_settings.py
+      - scripts/patch_app_mobile_fixed_v107.py
       - .github/workflows/android.yml
 
 permissions:
@@ -40,18 +42,61 @@ jobs:
       - name: Install Expo app dependencies
         working-directory: mobile
         run: npm install --no-audit --no-fund
-      - name: Apply settings patch to real mobile entry
+      - name: Apply settings patches to real mobile entry
         run: |
           set -euo pipefail
           python3 scripts/patch_app_mobile_fixed_settings.py
+          python3 scripts/patch_app_mobile_fixed_v107.py
           grep -n "إدارة المعلمات" mobile/AppMobileFixed.js
           grep -n "إدارة المعايير" mobile/AppMobileFixed.js
-          grep -n "متابعة ملفات المعلمات" mobile/AppMobileFixed.js
-          grep -n "1.0.6" mobile/AppMobileFixed.js
+          grep -n "1.0.7" mobile/AppMobileFixed.js
           grep -n "person-add-outline" mobile/AppMobileFixed.js
           grep -n "trash-outline" mobile/AppMobileFixed.js
           grep -n "create-outline" mobile/AppMobileFixed.js
           grep -n "CriteriaManagementScreen" mobile/AppMobileFixed.js
+          ! grep -n "title=\"متابعة ملفات المعلمات\"" mobile/AppMobileFixed.js
+      - name: Generate app icons
+        working-directory: mobile
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user pillow
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageDraw
+          assets = Path('assets')
+          assets.mkdir(exist_ok=True)
+          s = 1024
+          img = Image.new('RGBA', (s, s), (67,97,238,255))
+          d = ImageDraw.Draw(img)
+          for y in range(s):
+              t = y / (s - 1)
+              d.line([(0,y),(s,y)], fill=(int(67*(1-t)+26*t), int(97*(1-t)+16*t), int(238*(1-t)+96*t), 255))
+          d.rounded_rectangle((96,96,928,928), radius=210, fill=(255,255,255,28))
+          d.rounded_rectangle((225,325,799,755), radius=76, fill=(255,255,255,238))
+          d.polygon([(310,390),(512,250),(714,390)], fill=(255,255,255,248))
+          d.line([(310,390),(512,250),(714,390)], fill=(67,97,238,255), width=26)
+          d.rounded_rectangle((340,435,684,690), radius=34, fill=(238,241,255,255))
+          for x in (378, 484, 590):
+              d.rounded_rectangle((x,485,x+54,558), radius=16, fill=(67,97,238,230))
+          d.rounded_rectangle((468,585,556,690), radius=22, fill=(26,16,96,235))
+          d.ellipse((648,612,848,812), fill=(245,158,11,255), outline=(255,255,255,255), width=20)
+          d.line([(696,713),(742,754),(804,675)], fill=(255,255,255,255), width=26)
+          for name, n in [('icon.png',1024),('adaptive-icon.png',1024),('splash-icon.png',512),('favicon.png',48)]:
+              img.resize((n,n), Image.LANCZOS).save(assets/name)
+          PY
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = 'app.json';
+          const j = JSON.parse(fs.readFileSync(p,'utf8'));
+          j.expo.icon = './assets/icon.png';
+          j.expo.android = j.expo.android || {};
+          j.expo.android.adaptiveIcon = {
+            foregroundImage: './assets/adaptive-icon.png',
+            backgroundColor: '#4361EE'
+          };
+          j.expo.splash = { image: './assets/splash-icon.png', resizeMode: 'contain', backgroundColor: '#EEF4FF' };
+          fs.writeFileSync(p, JSON.stringify(j,null,2));
+          NODE
       - name: Prebuild Android project
         working-directory: mobile
         run: npx expo prebuild --platform android --clean --non-interactive
@@ -66,15 +111,17 @@ jobs:
           grep -n "AppMobileFixed" index.js
           grep -n "إدارة المعلمات" AppMobileFixed.js
           grep -n "إدارة المعايير" AppMobileFixed.js
-          grep -n "1.0.6" AppMobileFixed.js
+          grep -n "1.0.7" AppMobileFixed.js
           grep -n "person-add-outline" AppMobileFixed.js
           grep -n "trash-outline" AppMobileFixed.js
           grep -n "create-outline" AppMobileFixed.js
+          test -f assets/icon.png
+          test -f assets/adaptive-icon.png
       - name: Build bundled release APK
         working-directory: mobile/android
         run: ./gradlew assembleRelease --no-daemon
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: amal-teachers-crud-v106-apk
+          name: amal-settings-icon-v107-apk
           path: mobile/android/app/build/outputs/apk/release/*.apk
