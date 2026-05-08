@@ -7,14 +7,12 @@ on:
       - main
     paths:
       - mobile/**
-      - scripts/patch_mobile_settings_managers.py
       - .github/workflows/android.yml
   pull_request:
     branches:
       - main
     paths:
       - mobile/**
-      - scripts/patch_mobile_settings_managers.py
       - .github/workflows/android.yml
 
 permissions:
@@ -40,11 +38,6 @@ jobs:
       - name: Install Expo app dependencies
         working-directory: mobile
         run: npm install --no-audit --no-fund
-      - name: Apply latest mobile managers redesign before APK build
-        run: |
-          set -euo pipefail
-          python3 scripts/patch_mobile_settings_managers.py
-          grep -n "إدارة المعلمات\|إضافة معلمة\|إدارة المعايير\|managerTeacherRow\|settingsSub === 'teachers'\|settingsSub === 'criteria'" mobile/App.js | head -80
       - name: Prebuild Android project
         working-directory: mobile
         run: npx expo prebuild --platform android --clean --non-interactive
