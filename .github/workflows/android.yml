@@ -7,14 +7,14 @@ on:
       - main
     paths:
       - mobile/**
-      - scripts/patch_mobile_settings_management.py
+      - scripts/patch_app_mobile_fixed_settings.py
       - .github/workflows/android.yml
   pull_request:
     branches:
       - main
     paths:
       - mobile/**
-      - scripts/patch_mobile_settings_management.py
+      - scripts/patch_app_mobile_fixed_settings.py
       - .github/workflows/android.yml
 
 permissions:
@@ -40,15 +40,15 @@ jobs:
       - name: Install Expo app dependencies
         working-directory: mobile
         run: npm install --no-audit --no-fund
-      - name: Apply settings management screens for APK
+      - name: Apply settings patch to real mobile entry
         run: |
           set -euo pipefail
-          python3 scripts/patch_mobile_settings_management.py
-          grep -n "إدارة المعلمات" mobile/App.js
-          grep -n "إدارة المعايير" mobile/App.js
-          grep -n "متابعة المعلمات" mobile/App.js
-          grep -n "1.0.2" mobile/App.js
-          grep -n "CriteriaManagementScreen" mobile/App.js
+          python3 scripts/patch_app_mobile_fixed_settings.py
+          grep -n "إدارة المعلمات" mobile/AppMobileFixed.js
+          grep -n "إدارة المعايير" mobile/AppMobileFixed.js
+          grep -n "متابعة ملفات المعلمات" mobile/AppMobileFixed.js
+          grep -n "1.0.5" mobile/AppMobileFixed.js
+          grep -n "CriteriaManagementScreen" mobile/AppMobileFixed.js
       - name: Prebuild Android project
         working-directory: mobile
         run: npx expo prebuild --platform android --clean --non-interactive
@@ -56,19 +56,19 @@ jobs:
         working-directory: mobile
         run: |
           node -e "const fs=require('fs');const p='android/gradle.properties';if(fs.existsSync(p)){const s=fs.readFileSync(p,'utf8').split(/\r?\n/).filter(l=>!l.startsWith('android.disableAutomaticComponentCreation')).join('\n');fs.writeFileSync(p,s+'\n');}"
-      - name: Verify patched source before APK bundle
+      - name: Verify real entry before APK bundle
         working-directory: mobile
         run: |
           set -euo pipefail
-          grep -n "إدارة المعلمات" App.js
-          grep -n "إدارة المعايير" App.js
-          grep -n "متابعة المعلمات" App.js
-          grep -n "1.0.2" App.js
+          grep -n "AppMobileFixed" index.js
+          grep -n "إدارة المعلمات" AppMobileFixed.js
+          grep -n "إدارة المعايير" AppMobileFixed.js
+          grep -n "1.0.5" AppMobileFixed.js
       - name: Build bundled release APK
         working-directory: mobile/android
         run: ./gradlew assembleRelease --no-daemon
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: amal-settings-management-v102-apk
+          name: amal-real-settings-v105-apk
           path: mobile/android/app/build/outputs/apk/release/*.apk
