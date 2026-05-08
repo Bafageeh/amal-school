@@ -4,12 +4,13 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 
 class TeacherAccountsSeeder extends Seeder
 {
     /**
-     * Create teacher accounts from the provided names without passwords.
+     * Create the default principal account and teacher accounts.
      */
     public function run(): void
     {
@@ -18,6 +19,7 @@ class TeacherAccountsSeeder extends Seeder
         }
 
         $schoolId = $this->getSchoolId();
+        $this->ensurePrincipalAccount($schoolId);
 
         $teachers = [
             'أسماء ماجد المطيري',
@@ -66,6 +68,38 @@ class TeacherAccountsSeeder extends Seeder
             $payload['created_at'] = now();
             DB::table('users')->insert($payload);
         }
+    }
+
+    private function ensurePrincipalAccount(?int $schoolId): void
+    {
+        $payload = [
+            'name' => 'مديرة المدرسة',
+            'username' => 'admin',
+            'email' => 'admin@amal.local',
+            'password' => Hash::make('1234'),
+            'role' => 'principal',
+            'updated_at' => now(),
+        ];
+
+        if (Schema::hasColumn('users', 'school_id')) {
+            $payload['school_id'] = $schoolId;
+        }
+
+        $existing = DB::table('users')
+            ->where('username', 'admin')
+            ->orWhere('email', 'admin@amal.local')
+            ->orWhere(function ($query) {
+                $query->where('role', 'principal')->whereNull('username');
+            })
+            ->first();
+
+        if ($existing) {
+            DB::table('users')->where('id', $existing->id)->update($payload);
+            return;
+        }
+
+        $payload['created_at'] = now();
+        DB::table('users')->insert($payload);
     }
 
     private function getSchoolId(): ?int
