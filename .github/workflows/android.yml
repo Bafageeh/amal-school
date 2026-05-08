@@ -44,7 +44,10 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/patch_mobile_settings_management.py
-          grep -n "إدارة المعلمات\|إدارة المعايير\|teacherFiles\|CriteriaManagementScreen" mobile/App.js | head -80
+          grep -n "إدارة المعلمات" mobile/App.js
+          grep -n "إدارة المعايير" mobile/App.js
+          grep -n "teacherFiles" mobile/App.js
+          grep -n "CriteriaManagementScreen" mobile/App.js
       - name: Prebuild Android project
         working-directory: mobile
         run: npx expo prebuild --platform android --clean --non-interactive
@@ -52,11 +55,18 @@ jobs:
         working-directory: mobile
         run: |
           node -e "const fs=require('fs');const p='android/gradle.properties';if(fs.existsSync(p)){const s=fs.readFileSync(p,'utf8').split(/\r?\n/).filter(l=>!l.startsWith('android.disableAutomaticComponentCreation')).join('\n');fs.writeFileSync(p,s+'\n');}"
+      - name: Verify patched source before APK bundle
+        working-directory: mobile
+        run: |
+          set -euo pipefail
+          grep -n "إدارة المعلمات" App.js
+          grep -n "إدارة المعايير" App.js
+          grep -n "متابعة المعلمات" App.js
       - name: Build bundled release APK
         working-directory: mobile/android
         run: ./gradlew assembleRelease --no-daemon
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: amal-react-native-release-apk
+          name: amal-settings-management-release-apk
           path: mobile/android/app/build/outputs/apk/release/*.apk
