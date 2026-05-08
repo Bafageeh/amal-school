@@ -46,7 +46,8 @@ jobs:
           python3 scripts/patch_mobile_settings_management.py
           grep -n "إدارة المعلمات" mobile/App.js
           grep -n "إدارة المعايير" mobile/App.js
-          grep -n "teacherFiles" mobile/App.js
+          grep -n "متابعة المعلمات" mobile/App.js
+          grep -n "1.0.2" mobile/App.js
           grep -n "CriteriaManagementScreen" mobile/App.js
       - name: Prebuild Android project
         working-directory: mobile
@@ -62,11 +63,12 @@ jobs:
           grep -n "إدارة المعلمات" App.js
           grep -n "إدارة المعايير" App.js
           grep -n "متابعة المعلمات" App.js
+          grep -n "1.0.2" App.js
       - name: Build bundled release APK
         working-directory: mobile/android
         run: ./gradlew assembleRelease --no-daemon
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: amal-settings-management-release-apk
+          name: amal-settings-management-v102-apk
           path: mobile/android/app/build/outputs/apk/release/*.apk
