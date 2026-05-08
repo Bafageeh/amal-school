@@ -47,7 +47,10 @@ jobs:
           grep -n "إدارة المعلمات" mobile/AppMobileFixed.js
           grep -n "إدارة المعايير" mobile/AppMobileFixed.js
           grep -n "متابعة ملفات المعلمات" mobile/AppMobileFixed.js
-          grep -n "1.0.5" mobile/AppMobileFixed.js
+          grep -n "1.0.6" mobile/AppMobileFixed.js
+          grep -n "person-add-outline" mobile/AppMobileFixed.js
+          grep -n "trash-outline" mobile/AppMobileFixed.js
+          grep -n "create-outline" mobile/AppMobileFixed.js
           grep -n "CriteriaManagementScreen" mobile/AppMobileFixed.js
       - name: Prebuild Android project
         working-directory: mobile
@@ -63,12 +66,15 @@ jobs:
           grep -n "AppMobileFixed" index.js
           grep -n "إدارة المعلمات" AppMobileFixed.js
           grep -n "إدارة المعايير" AppMobileFixed.js
-          grep -n "1.0.5" AppMobileFixed.js
+          grep -n "1.0.6" AppMobileFixed.js
+          grep -n "person-add-outline" AppMobileFixed.js
+          grep -n "trash-outline" AppMobileFixed.js
+          grep -n "create-outline" AppMobileFixed.js
       - name: Build bundled release APK
         working-directory: mobile/android
         run: ./gradlew assembleRelease --no-daemon
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: amal-real-settings-v105-apk
+          name: amal-teachers-crud-v106-apk
           path: mobile/android/app/build/outputs/apk/release/*.apk
