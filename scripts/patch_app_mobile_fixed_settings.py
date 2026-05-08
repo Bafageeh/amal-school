@@ -5,7 +5,7 @@ if not p.exists():
     raise SystemExit('mobile/AppMobileFixed.js not found')
 
 text = p.read_text()
-p.with_suffix('.js.backup-before-v105-settings').write_text(text)
+p.with_suffix('.js.backup-before-v106-settings-teachers-crud').write_text(text)
 
 
 def replace_between(src, start_marker, end_marker, replacement):
@@ -16,6 +16,145 @@ def replace_between(src, start_marker, end_marker, replacement):
     if end == -1:
         raise SystemExit(f'end marker not found: {end_marker}')
     return src[:start] + replacement.rstrip() + '\n\n' + src[end:]
+
+teachers_screen = r'''
+function TeachersManagementScreen({ token, onBack }) {
+  const [loading, setLoading] = useState(true);
+  const [teachers, setTeachers] = useState([]);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState(null);
+  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  async function loadTeachers() {
+    setLoading(true);
+    try {
+      const data = await requestJson('/teachers', { token });
+      setTeachers(data.teachers || []);
+    } catch (error) {
+      Alert.alert('تعذر تحميل المعلمات', error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { loadTeachers(); }, [token]);
+
+  function openAddTeacher() {
+    setEditingTeacher(null);
+    setName('');
+    setUsername('');
+    setPassword('');
+    setFormOpen(true);
+  }
+
+  function openEditTeacher(teacher) {
+    setEditingTeacher(teacher);
+    setName(teacher.name || '');
+    setUsername(teacher.username || '');
+    setPassword('');
+    setFormOpen(true);
+  }
+
+  async function saveTeacher() {
+    if (!name.trim()) return Alert.alert('تنبيه', 'أدخلي اسم المعلمة');
+    if (!username.trim()) return Alert.alert('تنبيه', 'أدخلي اسم المستخدم');
+    if (!editingTeacher && !password.trim()) return Alert.alert('تنبيه', 'أدخلي الرقم السري');
+    setSaving(true);
+    try {
+      const body = { name: name.trim(), username: username.trim() };
+      if (password.trim()) {
+        body.password = password.trim();
+        body.password_confirmation = password.trim();
+      }
+      await requestJson(editingTeacher ? `/teachers/${editingTeacher.id}` : '/teachers', {
+        method: editingTeacher ? 'PUT' : 'POST',
+        token,
+        body,
+      });
+      setFormOpen(false);
+      setEditingTeacher(null);
+      await loadTeachers();
+    } catch (error) {
+      Alert.alert('تعذر الحفظ', error.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function confirmDeleteTeacher(teacher) {
+    Alert.alert('حذف المعلمة', `هل تريدين حذف ${teacher.name}؟`, [
+      { text: 'إلغاء', style: 'cancel' },
+      { text: 'حذف', style: 'destructive', onPress: async () => {
+        try {
+          await requestJson(`/teachers/${teacher.id}`, { method: 'DELETE', token });
+          await loadTeachers();
+        } catch (error) {
+          Alert.alert('تعذر الحذف', error.message);
+        }
+      } },
+    ]);
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <View style={styles.adminBackHeader}>
+        <TouchableOpacity onPress={openAddTeacher} style={styles.headerBtn} activeOpacity={0.75}>
+          <Ionicons name="person-add-outline" size={21} color={C.primary} />
+        </TouchableOpacity>
+        <Text style={styles.pageTitle}>إدارة المعلمات</Text>
+        <TouchableOpacity onPress={onBack} style={styles.headerBtn} activeOpacity={0.75}>
+          <Ionicons name="arrow-forward-outline" size={20} color={C.primary} />
+        </TouchableOpacity>
+      </View>
+      <Text style={styles.pageSubtitle}>إضافة وتعديل وحذف حسابات المعلمات</Text>
+
+      {formOpen ? (
+        <View style={[styles.listCard, { padding: 14, gap: 10, marginBottom: 14 }]}> 
+          <Text style={styles.actionRowTitle}>{editingTeacher ? 'تعديل معلمة' : 'إضافة معلمة'}</Text>
+          <TextInput value={name} onChangeText={setName} placeholder="اسم المعلمة" placeholderTextColor={C.subtle} style={[styles.inputField, { backgroundColor: C.bg, borderRadius: 14, paddingHorizontal: 14, minHeight: 48, textAlign: 'right' }]} />
+          <TextInput value={username} onChangeText={setUsername} placeholder="اسم المستخدم" placeholderTextColor={C.subtle} autoCapitalize="none" style={[styles.inputField, { backgroundColor: C.bg, borderRadius: 14, paddingHorizontal: 14, minHeight: 48, textAlign: 'right' }]} />
+          <TextInput value={password} onChangeText={setPassword} placeholder={editingTeacher ? 'رقم سري جديد - اختياري' : 'الرقم السري'} placeholderTextColor={C.subtle} secureTextEntry keyboardType="number-pad" style={[styles.inputField, { backgroundColor: C.bg, borderRadius: 14, paddingHorizontal: 14, minHeight: 48, textAlign: 'right' }]} />
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity onPress={() => { setFormOpen(false); setEditingTeacher(null); }} style={[styles.logoutBtn, { flex: 1, marginTop: 0, borderColor: C.border }]} activeOpacity={0.85}>
+              <Ionicons name="close-outline" size={19} color={C.muted} />
+              <Text style={[styles.logoutText, { color: C.muted }]}>إلغاء</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={saveTeacher} disabled={saving} style={[styles.loginBtnGrad, { flex: 1, minHeight: 48, borderRadius: 16, flexDirection: 'row', gap: 8 }]} activeOpacity={0.85}>
+              {saving ? <ActivityIndicator color="#fff" /> : <><Ionicons name="save-outline" size={19} color="#fff" /><Text style={styles.loginBtnText}>حفظ</Text></>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : null}
+
+      {loading ? <ActivityIndicator color={C.primary} size="large" style={{ marginTop: 30 }} /> : (
+        <View style={styles.listCard}>
+          {teachers.length === 0 ? <EmptyRow title="لا توجد معلمات" /> : teachers.map((teacher, idx) => (
+            <View key={teacher.id} style={[styles.actionRow, idx === teachers.length - 1 && { borderBottomWidth: 0 }]}> 
+              <TouchableOpacity onPress={() => confirmDeleteTeacher(teacher)} activeOpacity={0.75}>
+                <Ionicons name="trash-outline" size={20} color={C.red} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => openEditTeacher(teacher)} activeOpacity={0.75}>
+                <Ionicons name="create-outline" size={20} color={C.muted} />
+              </TouchableOpacity>
+              <View style={styles.actionRowText}>
+                <Text style={styles.actionRowTitle}>{teacher.name}</Text>
+                <Text style={styles.actionRowSub}>اسم المستخدم: {teacher.username || '—'} · الملفات: {teacher.uploads_count ?? 0}</Text>
+              </View>
+              <View style={[styles.actionRowIcon, { backgroundColor: C.primaryLight }]}>
+                <Ionicons name="person-outline" size={20} color={C.primary} />
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+      <View style={{ height: 28 }} />
+    </ScrollView>
+  );
+}
+'''
 
 criteria_and_settings = r'''
 function CriteriaManagementScreen({ token, evidence, onBack, onChanged, onOpenEvidence }) {
@@ -42,19 +181,8 @@ function CriteriaManagementScreen({ token, evidence, onBack, onChanged, onOpenEv
     }
   }
 
-  function openAddCriterion() {
-    setEditingItem(null);
-    setTitle('');
-    setDescription('');
-    setFormOpen(true);
-  }
-
-  function openEditCriterion(item) {
-    setEditingItem(item);
-    setTitle(item.title || '');
-    setDescription(item.description || '');
-    setFormOpen(true);
-  }
+  function openAddCriterion() { setEditingItem(null); setTitle(''); setDescription(''); setFormOpen(true); }
+  function openEditCriterion(item) { setEditingItem(item); setTitle(item.title || ''); setDescription(item.description || ''); setFormOpen(true); }
 
   async function saveCriterion() {
     if (!title.trim()) return Alert.alert('تنبيه', 'أدخلي اسم المعيار');
@@ -189,7 +317,7 @@ function SettingsScreen({ user, onLogout, onOpenTeachers, onOpenTeacherFiles, on
       <View style={styles.listCard}>
         <ActionRow icon="help-circle-outline" title="الدعم والمساعدة" subtitle="تواصلي مع فريق الدعم" accent={C.muted} onPress={() => Alert.alert('الدعم والمساعدة', 'سيتم ربط وسيلة الدعم لاحقاً.')} />
         <View style={styles.appVersionRow}>
-          <Text style={styles.appVersionValue}>1.0.5</Text>
+          <Text style={styles.appVersionValue}>1.0.6</Text>
           <View style={styles.appVersionText}>
             <Text style={styles.appVersionTitle}>إصدار التطبيق</Text>
             <Text style={styles.appVersionSub}>Amal School App</Text>
@@ -287,13 +415,24 @@ function MainApp({ token, user, setUser, onLogout }) {
 }
 '''
 
+text = replace_between(text, 'function TeachersManagementScreen', 'function TeacherFilesScreen', teachers_screen)
 text = replace_between(text, 'function SettingsScreen', 'function BottomNav', criteria_and_settings)
 text = replace_between(text, 'function MainApp', 'export default function AppMobileFixed', main_app)
 
-required = ['إدارة المعلمات', 'إدارة المعايير', 'متابعة ملفات المعلمات', '1.0.5', 'function CriteriaManagementScreen', "settingsSub === 'criteria'"]
+required = [
+    'إدارة المعلمات',
+    'إدارة المعايير',
+    'متابعة ملفات المعلمات',
+    '1.0.6',
+    'function CriteriaManagementScreen',
+    "settingsSub === 'criteria'",
+    'person-add-outline',
+    'trash-outline',
+    'create-outline',
+]
 for item in required:
     if item not in text:
         raise SystemExit('missing required text: ' + item)
 
 p.write_text(text)
-print('Patched AppMobileFixed settings v1.0.5')
+print('Patched AppMobileFixed settings and teachers CRUD v1.0.6')
