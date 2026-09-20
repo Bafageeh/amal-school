@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class MobileAuthController extends Controller
@@ -33,10 +35,22 @@ class MobileAuthController extends Controller
     private function issueToken(User $user): string
     {
         $token = Str::random(80);
+        $tokenHash = hash('sha256', $token);
+        $issuedAt = now();
 
+        if (Schema::hasTable('mobile_api_tokens')) {
+            DB::table('mobile_api_tokens')->insert([
+                'user_id' => $user->id,
+                'token_hash' => $tokenHash,
+                'created_at' => $issuedAt,
+                'updated_at' => $issuedAt,
+            ]);
+        }
+
+        // Keep the legacy columns populated for rollback compatibility.
         $user->forceFill([
-            'mobile_api_token_hash' => hash('sha256', $token),
-            'mobile_api_token_created_at' => now(),
+            'mobile_api_token_hash' => $tokenHash,
+            'mobile_api_token_created_at' => $issuedAt,
         ])->save();
 
         return $token;
@@ -114,10 +128,23 @@ class MobileAuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->forceFill([
-            'mobile_api_token_hash' => null,
-            'mobile_api_token_created_at' => null,
-        ])->save();
+        $user = $request->user();
+        $header = $request->header('Authorization', '');
+        $token = str_starts_with($header, 'Bearer ') ? trim(substr($header, 7)) : '';
+        $tokenHash = $token !== '' ? hash('sha256', $token) : null;
+
+        if ($tokenHash && Schema::hasTable('mobile_api_tokens')) {
+            DB::table('mobile_api_tokens')
+                ->where('token_hash', $tokenHash)
+                ->delete();
+        }
+
+        if ($tokenHash && hash_equals((string) $user->mobile_api_token_hash, $tokenHash)) {
+            $user->forceFill([
+                'mobile_api_token_hash' => null,
+                'mobile_api_token_created_at' => null,
+            ])->save();
+        }
 
         return response()->json(['message' => 'تم تسجيل الخروج.']);
     }
