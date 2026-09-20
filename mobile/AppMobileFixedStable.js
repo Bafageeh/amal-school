@@ -66,7 +66,9 @@ async function requestJson(path, { method = 'GET', token = null, body = null } =
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const firstError = data.errors ? Object.values(data.errors).flat()[0] : null;
-    throw new Error(firstError || data.message || `HTTP ${response.status}`);
+    const error = new Error(firstError || data.message || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
   return data;
 }
@@ -877,6 +879,10 @@ function MainApp({ token, user, setUser, onLogout }) {
         setDashboard(dash);
         setEvidence(ev.items || []);
       } catch (error) {
+        if (error?.status === 401) {
+          await onLogout();
+          return;
+        }
         Alert.alert('تعذر تحميل البيانات', error.message);
       } finally {
         if (alive) setLoading(false);
