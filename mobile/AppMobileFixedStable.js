@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,7 +15,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import EvidenceDetailScreen from './src/EvidenceDetailScreen';
 
 const API_BASE_URL = 'https://amal.pm.sa/mobile-api/v1';
@@ -940,7 +940,7 @@ function MainApp({ token, user, setUser, onLogout }) {
   return (
     <View style={[styles.fill, { backgroundColor: C.bg }]}> 
       <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
-      <SafeAreaView style={styles.fill}>
+      <SafeAreaView style={[styles.fill, styles.androidSafeTop]}>
         {!loading && !showDetail ? <AppHeader user={user} onLogout={onLogout} /> : null}
         <View style={styles.fill}>{screen}</View>
         {!loading && !showDetail ? <BottomNav tab={tab} setTab={goTab} isPrincipal={isPrincipal} /> : null}
@@ -1014,6 +1014,7 @@ export default function AppMobileFixedStable() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
+  androidSafeTop: Platform.OS === 'android' ? { paddingTop: StatusBar.currentHeight || 0 } : {},
   loadingLogo: {
     width: 86,
     height: 86,
