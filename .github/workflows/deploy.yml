@@ -172,8 +172,7 @@ jobs:
           SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
           ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "set -e
             if command -v lsof >/dev/null 2>&1; then lsof -tiTCP:8081 -sTCP:LISTEN | xargs -r kill -9 || true; fi
-            pkill -f '[e]xpo.*--port 8081' || true
-            pkill -f '[m]etro.*8081' || true
+            if command -v fuser >/dev/null 2>&1; then fuser -k 8081/tcp || true; fi
             cd '$PROJECT_PATH/mobile'
             rm -rf .expo node_modules/.cache /home/pmsa/apps/.cache/metro /home/pmsa/apps/.cache/expo
             mkdir -p /home/pmsa/apps/.cache /home/pmsa/apps/.tmp
