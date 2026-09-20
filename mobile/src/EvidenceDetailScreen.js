@@ -6,7 +6,6 @@ import {
   Linking,
   Modal,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -18,6 +17,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 
 const API = 'https://amal.pm.sa/mobile-api/v1';
@@ -455,7 +455,7 @@ export default function EvidenceDetailScreen({ token, evidence, schoolName, onBa
       </ScrollView>
 
       <Modal visible={previewVisible} animationType="slide" onRequestClose={closePreview}>
-        <SafeAreaView style={styles.previewModalContainer}>
+        <SafeAreaView style={styles.previewModalContainer} edges={['top', 'bottom', 'left', 'right']}>
           <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
           <View style={styles.previewHeader}>
             <TouchableOpacity style={styles.previewHeaderBtn} onPress={closePreview} activeOpacity={0.85}>
