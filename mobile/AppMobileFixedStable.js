@@ -246,6 +246,20 @@ function AppHeader({ user, onLogout }) {
   );
 }
 
+function SchoolLogoMark({ schoolName }) {
+  const label = String(schoolName || 'مدرسة').match(/\d+/)?.[0] || String(schoolName || 'م').trim().charAt(0) || 'م';
+
+  return (
+    <View style={styles.schoolLogoMark} pointerEvents="none">
+      <View style={styles.schoolLogoSymbol}>
+        <Ionicons name="person" size={11} color="#5B2A86" style={styles.schoolLogoPerson} />
+        <Ionicons name="book-outline" size={30} color="#5B2A86" />
+      </View>
+      <Text style={styles.schoolLogoLabel} numberOfLines={1}>{label}</Text>
+    </View>
+  );
+}
+
 function StatCard({ label, value, icon, bg, color }) {
   return (
     <View style={styles.statCard}>
@@ -286,6 +300,7 @@ function HomeScreen({ user, dashboard, setTab }) {
   return (
     <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
       <LinearGradient colors={C.grad} style={styles.heroCard}>
+        <SchoolLogoMark schoolName={user?.school?.name} />
         <View style={styles.heroPill}>
           <View style={styles.heroPillDot} />
           <Text style={styles.heroPillText}>{isPrincipal ? 'مديرة المدرسة' : 'معلمة'}</Text>
@@ -769,6 +784,7 @@ function SettingsScreen({ user, onLogout, onOpenTeachers, onOpenCriteria }) {
   return (
     <ScrollView contentContainerStyle={styles.screenPad} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
       <LinearGradient colors={C.grad} style={styles.profileCard}>
+        <SchoolLogoMark schoolName={user?.school?.name} />
         <View style={styles.profileAvatarRow}>
           <View style={styles.profileAvatarWrap}>
             <View style={styles.profileAvatarInner}><Text style={styles.profileAvatarLetter}>{initials}</Text></View>
@@ -914,7 +930,7 @@ function MainApp({ token, user, setUser, onLogout }) {
 
   let screen;
   if (loading) screen = <LoadingScreen />;
-  else if (showDetail) screen = <EvidenceDetailScreen token={token} evidence={selectedEvidence} onBack={() => setSelectedEvidence(null)} />;
+  else if (showDetail) screen = <EvidenceDetailScreen token={token} evidence={selectedEvidence} schoolName={user?.school?.name} onBack={() => setSelectedEvidence(null)} />;
   else if (tab === 'evidence') screen = <EvidenceScreen evidence={evidence} onSelectEvidence={setSelectedEvidence} isPrincipal={isPrincipal} />;
   else if (tab === 'teacherFiles') screen = <TeacherFilesScreen token={token} onBack={() => goTab('home')} onOpenEvidence={(item) => setSelectedEvidence(item)} />;
   else if (tab === 'settings' && settingsSub === 'teachers') screen = <TeachersManagementScreen token={token} onBack={() => setSettingsSub(null)} />;
@@ -1110,7 +1126,25 @@ const styles = StyleSheet.create({
   headerAvatarText: { color: '#fff', fontSize: 20, fontWeight: '900' },
   headerRoleDot: { position: 'absolute', right: -2, bottom: -2, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#fff' },
   screenPad: { padding: 16, paddingBottom: 110 },
-  heroCard: { borderRadius: 28, padding: 20, minHeight: 166, justifyContent: 'space-between', ...shadow(4) },
+  schoolLogoMark: {
+    position: 'absolute',
+    left: 18,
+    top: 18,
+    width: 66,
+    height: 66,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 4,
+    ...shadow(2),
+  },
+  schoolLogoSymbol: { height: 34, alignItems: 'center', justifyContent: 'flex-end' },
+  schoolLogoPerson: { marginBottom: -7, zIndex: 2 },
+  schoolLogoLabel: { color: '#5B2A86', fontSize: 11, fontWeight: '900', marginTop: 2, maxWidth: 50, textAlign: 'center' },
+  heroCard: { borderRadius: 28, padding: 20, minHeight: 166, justifyContent: 'space-between', position: 'relative', ...shadow(4) },
   heroPill: {
     alignSelf: 'flex-end',
     flexDirection: 'row',
@@ -1205,7 +1239,7 @@ const styles = StyleSheet.create({
   },
   secondaryBtnText: { color: C.muted, fontSize: 14, fontWeight: '900' },
   formPrimaryWrap: { flex: 1 },
-  profileCard: { borderRadius: 28, padding: 18, ...shadow(3) },
+  profileCard: { borderRadius: 28, padding: 18, position: 'relative', ...shadow(3) },
   profileAvatarRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 12 },
   profileAvatarWrap: { position: 'relative' },
   profileAvatarInner: { width: 58, height: 58, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
