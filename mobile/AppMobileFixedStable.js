@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -15,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import EvidenceDetailScreen from './src/EvidenceDetailScreen';
 
 const API_BASE_URL = 'https://amal.pm.sa/mobile-api/v1';
