@@ -19,6 +19,11 @@
     "extra": {
       "apiBaseUrl": "https://amal.pm.sa",
       "cacheKey": "amal-clean-20260507-1958"
-    }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-secure-store",
+      "expo-status-bar"
+    ]
   }
 }

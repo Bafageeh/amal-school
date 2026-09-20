@@ -174,6 +174,7 @@ jobs:
             if command -v lsof >/dev/null 2>&1; then lsof -tiTCP:8081 -sTCP:LISTEN | xargs -r kill -9 || true; fi
             if command -v fuser >/dev/null 2>&1; then fuser -k 8081/tcp || true; fi
             cd '$PROJECT_PATH/mobile'
+            npm install --no-audit --no-fund
             rm -rf .expo node_modules/.cache /home/pmsa/apps/.cache/metro /home/pmsa/apps/.cache/expo
             mkdir -p /home/pmsa/apps/.cache /home/pmsa/apps/.tmp
             nohup env BROWSER=none EXPO_NO_TELEMETRY=1 REACT_NATIVE_PACKAGER_HOSTNAME=amal.pm.sa XDG_CACHE_HOME=/home/pmsa/apps/.cache TMPDIR=/home/pmsa/apps/.tmp TMP=/home/pmsa/apps/.tmp TEMP=/home/pmsa/apps/.tmp npx expo start --clear --go --host lan --port 8081 > /home/pmsa/apps/amal-school-expo.log 2>&1 &
