@@ -3,7 +3,7 @@
     "name": "Amal Preview",
     "slug": "amal-school-clean",
     "scheme": "amalpreviewclean",
-    "version": "1.0.3",
+    "version": "1.0.9",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#EEF4FF",
@@ -13,8 +13,10 @@
         "backgroundColor": "#0F172A"
       },
       "permissions": [
-        "INTERNET"
-      ]
+        "INTERNET",
+        "REQUEST_INSTALL_PACKAGES"
+      ],
+      "versionCode": 2
     },
     "extra": {
       "apiBaseUrl": "https://amal.pm.sa",
