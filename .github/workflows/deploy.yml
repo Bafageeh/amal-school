@@ -171,8 +171,9 @@ jobs:
           KEY_FILE="$HOME/.ssh/amal_github_actions"
           SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
           ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "set -e
-            pkill -f 'expo|metro|node.*8081' || true
-            if command -v lsof >/dev/null 2>&1; then lsof -ti:8081 | xargs -r kill -9 || true; fi
+            if command -v lsof >/dev/null 2>&1; then lsof -tiTCP:8081 -sTCP:LISTEN | xargs -r kill -9 || true; fi
+            pkill -f '[e]xpo.*--port 8081' || true
+            pkill -f '[m]etro.*8081' || true
             cd '$PROJECT_PATH/mobile'
             rm -rf .expo node_modules/.cache /home/pmsa/apps/.cache/metro /home/pmsa/apps/.cache/expo
             mkdir -p /home/pmsa/apps/.cache /home/pmsa/apps/.tmp
