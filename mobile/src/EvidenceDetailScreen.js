@@ -198,8 +198,22 @@ function UploadCard({ upload, onPreview, onDownload }) {
   );
 }
 
+function SchoolLogoMark({ schoolName }) {
+  const label = String(schoolName || 'مدرسة').match(/\d+/)?.[0] || String(schoolName || 'م').trim().charAt(0) || 'م';
+
+  return (
+    <View style={styles.schoolLogoMark} pointerEvents="none">
+      <View style={styles.schoolLogoSymbol}>
+        <Ionicons name="person" size={11} color="#5B2A86" style={styles.schoolLogoPerson} />
+        <Ionicons name="book-outline" size={30} color="#5B2A86" />
+      </View>
+      <Text style={styles.schoolLogoLabel} numberOfLines={1}>{label}</Text>
+    </View>
+  );
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
-export default function EvidenceDetailScreen({ token, evidence, onBack }) {
+export default function EvidenceDetailScreen({ token, evidence, schoolName, onBack }) {
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState(evidence);
   const [uploads, setUploads] = useState([]);
@@ -319,6 +333,7 @@ export default function EvidenceDetailScreen({ token, evidence, onBack }) {
 
         <LinearGradient colors={C.grad} style={styles.hero}>
           <View style={styles.heroDecor1} />
+          <SchoolLogoMark schoolName={schoolName} />
           <View style={styles.heroDecor2} />
 
           <View style={styles.heroBadge}>
@@ -518,6 +533,24 @@ const styles = StyleSheet.create({
 
   // Hero
   hero: { borderRadius: 28, padding: 22, marginBottom: 20, minHeight: 190, overflow: 'hidden', position: 'relative' },
+  schoolLogoMark: {
+    position: 'absolute',
+    left: 18,
+    top: 18,
+    width: 66,
+    height: 66,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 4,
+    ...shadow(2),
+  },
+  schoolLogoSymbol: { height: 34, alignItems: 'center', justifyContent: 'flex-end' },
+  schoolLogoPerson: { marginBottom: -7, zIndex: 2 },
+  schoolLogoLabel: { color: '#5B2A86', fontSize: 11, fontWeight: '900', marginTop: 2, maxWidth: 50, textAlign: 'center' },
   heroDecor1: { position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.05)', top: -60, left: -50 },
   heroDecor2: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.06)', bottom: -30, right: 20 },
   heroBadge: { flexDirection: 'row-reverse', alignItems: 'center', gap: 6, alignSelf: 'flex-end', backgroundColor: 'rgba(255,255,255,0.14)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, marginBottom: 16 },
