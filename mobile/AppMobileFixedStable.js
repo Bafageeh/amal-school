@@ -268,8 +268,8 @@ function ActionRow({ icon, title, subtitle, accent = C.primary, onPress, noBorde
     >
       <Ionicons name="chevron-back" size={16} color={onPress ? C.border : 'transparent'} />
       <View style={styles.actionRowText} pointerEvents="none">
-        <Text style={[styles.actionRowTitle, { writingDirection: 'rtl' }]}>{title}</Text>
-        {subtitle ? <Text style={[styles.actionRowSub, { writingDirection: 'rtl' }]}>{subtitle}</Text> : null}
+        <Text style={styles.actionRowTitle}>{title}</Text>
+        {subtitle ? <Text style={styles.actionRowSub}>{subtitle}</Text> : null}
       </View>
       <View pointerEvents="none" style={[styles.actionRowIcon, { backgroundColor: `${accent}18` }]}> 
         <Ionicons name={icon} size={20} color={accent} />
@@ -1151,9 +1151,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  actionRowText: { flex: 1, alignItems: 'flex-end' },
-  actionRowTitle: { color: C.text, fontSize: 15, fontWeight: '900', textAlign: 'right' },
-  actionRowSub: { color: C.muted, fontSize: 12, fontWeight: '700', textAlign: 'right', marginTop: 3 },
+  actionRowText: { flex: 1, minWidth: 0, alignSelf: 'stretch', justifyContent: 'center' },
+  actionRowTitle: { color: C.text, fontSize: 15, fontWeight: '900', textAlign: 'right', writingDirection: 'rtl', alignSelf: 'stretch' },
+  actionRowSub: { color: C.muted, fontSize: 12, fontWeight: '700', textAlign: 'right', writingDirection: 'rtl', alignSelf: 'stretch', marginTop: 3 },
   actionRowIcon: { width: 42, height: 42, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   iconTap: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: C.bg },
   uploadRow: {
