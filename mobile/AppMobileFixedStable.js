@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -15,6 +14,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import EvidenceDetailScreen from './src/EvidenceDetailScreen';
 
 const API_BASE_URL = 'https://amal.pm.sa/mobile-api/v1';
@@ -145,7 +145,7 @@ function LoginScreen({ onLoggedIn }) {
     <View style={styles.fill}>
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={C.grad} style={styles.loginTop}>
-        <SafeAreaView style={styles.loginTopInner}>
+        <SafeAreaView style={styles.loginTopInner} edges={['top', 'left', 'right']}>
           <View style={styles.loginLogo}><Text style={styles.loginLogoText}>أ</Text></View>
           <Text style={styles.loginAppName}>أمل</Text>
           <Text style={styles.loginTagline}>منصة معايير التقييم وملفات المعلمات</Text>
@@ -206,7 +206,7 @@ function SetupPasswordScreen({ token, user, onDone }) {
     <View style={styles.fill}>
       <StatusBar barStyle="light-content" />
       <LinearGradient colors={C.grad} style={styles.loginTop}>
-        <SafeAreaView style={styles.loginTopInner}>
+        <SafeAreaView style={styles.loginTopInner} edges={['top', 'left', 'right']}>
           <View style={styles.loginLogo}><Ionicons name="shield-checkmark-outline" size={40} color="#fff" /></View>
           <Text style={styles.loginAppName}>اعتماد الحساب</Text>
           <Text style={styles.loginTagline}>أدخلي اسمك والرقم السري الجديد</Text>
@@ -956,7 +956,7 @@ function MainApp({ token, user, setUser, onLogout }) {
   return (
     <View style={[styles.fill, { backgroundColor: C.bg }]}> 
       <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
-      <SafeAreaView style={[styles.fill, styles.androidSafeTop]}>
+      <SafeAreaView style={styles.fill} edges={['top', 'left', 'right']}>
         {!loading && !showDetail ? <AppHeader user={user} onLogout={onLogout} /> : null}
         <View style={styles.fill}>{screen}</View>
         {!loading && !showDetail ? <BottomNav tab={tab} setTab={goTab} isPrincipal={isPrincipal} /> : null}
@@ -965,7 +965,7 @@ function MainApp({ token, user, setUser, onLogout }) {
   );
 }
 
-export default function AppMobileFixedStable() {
+function AppMobileFixedStableContent() {
   const [ready, setReady] = useState(false);
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
@@ -1027,10 +1027,17 @@ export default function AppMobileFixedStable() {
   return <MainApp token={token} user={user} setUser={setUser} onLogout={logout} />;
 }
 
+export default function AppMobileFixedStable() {
+  return (
+    <SafeAreaProvider>
+      <AppMobileFixedStableContent />
+    </SafeAreaProvider>
+  );
+}
+
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
-  androidSafeTop: Platform.OS === 'android' ? { paddingTop: StatusBar.currentHeight || 0 } : {},
   loadingLogo: {
     width: 86,
     height: 86,
