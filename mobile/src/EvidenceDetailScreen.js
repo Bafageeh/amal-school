@@ -144,7 +144,7 @@ function PickedFileRow({ file, onRemove }) {
         <Ionicons name="close-circle" size={20} color={C.red} />
       </TouchableOpacity>
       <View style={styles.pickedText}>
-        <Text style={styles.pickedName} numberOfLines={1}>{file.name}</Text>
+        <Text style={styles.pickedName} numberOfLines={1}>ملف مختار</Text>
         {sizeKb ? <Text style={styles.pickedSize}>{sizeKb}</Text> : null}
       </View>
       <View style={[styles.pickedIcon, { backgroundColor: bg }]}>
@@ -176,10 +176,7 @@ function UploadCard({ upload, onPreview, onDownload }) {
             <Ionicons name={icon} size={18} color={color} />
           </View>
           <View style={styles.uploadTitleTextWrap}>
-            <Text style={styles.uploadTitle} numberOfLines={2}>{upload.title || fileName}</Text>
-            {upload.title && fileName && upload.title !== fileName ? (
-              <Text style={styles.uploadFileName} numberOfLines={1}>{fileName}</Text>
-            ) : null}
+            <Text style={styles.uploadTitle} numberOfLines={2}>{upload.title || 'ملف مرفوع'}</Text>
           </View>
         </View>
 
@@ -451,7 +448,7 @@ export default function EvidenceDetailScreen({ token, evidence, onBack }) {
             </TouchableOpacity>
 
             <Text numberOfLines={1} style={styles.previewHeaderTitle}>
-              {previewUpload ? resolveFileName(previewUpload) : 'معاينة الملف'}
+              'معاينة الملف'
             </Text>
 
             <TouchableOpacity style={styles.previewHeaderBtn} onPress={() => previewUpload && downloadUpload(previewUpload)} activeOpacity={0.85}>
