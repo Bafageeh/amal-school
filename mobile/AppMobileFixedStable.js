@@ -14,11 +14,16 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
+import * as Application from 'expo-application';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as IntentLauncher from 'expo-intent-launcher';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import EvidenceDetailScreen from './src/EvidenceDetailScreen';
 
 const API_BASE_URL = 'https://amal.pm.sa/mobile-api/v1';
 const TOKEN_KEY = 'amal_mobile_token';
+const UPDATE_MANIFEST_URL = 'https://amal.pm.sa/updates/android.json';
+const ANDROID_PACKAGE_ID = 'sa.pm.amal.preview';
 
 const C = {
   bg: '#F4F7FF',
@@ -51,6 +56,40 @@ const shadow = (depth = 2) => Platform.select({
   android: { elevation: depth + 1 },
   default: {},
 });
+
+async function checkForAndroidUpdate() {
+  if (Platform.OS !== 'android') return;
+  if (Application.applicationId !== ANDROID_PACKAGE_ID) return;
+
+  try {
+    const response = await fetch(`${UPDATE_MANIFEST_URL}?t=${Date.now()}`, {
+      headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
+    });
+    if (!response.ok) return;
+
+    const update = await response.json();
+    const latestCode = Number(update?.version_code || 0);
+    const currentCode = Number(Application.nativeBuildVersion || 0);
+    const apkUrl = update?.apk_url;
+
+    if (!latestCode || !apkUrl || latestCode <= currentCode) return;
+
+    const apkPath = `${FileSystem.cacheDirectory}amal-update-${latestCode}.apk`;
+    const existing = await FileSystem.getInfoAsync(apkPath);
+    if (!existing.exists) {
+      await FileSystem.downloadAsync(apkUrl, apkPath);
+    }
+
+    const contentUri = await FileSystem.getContentUriAsync(apkPath);
+    await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+      data: contentUri,
+      flags: 1,
+      type: 'application/vnd.android.package-archive',
+    });
+  } catch {
+    // Update checks must never block normal app usage.
+  }
+}
 
 async function requestJson(path, { method = 'GET', token = null, body = null } = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -827,7 +866,7 @@ function SettingsScreen({ user, onLogout, onOpenTeachers, onOpenCriteria }) {
       <View style={styles.listCard}>
         <ActionRow icon="help-circle-outline" title="الدعم والمساعدة" subtitle="تواصلي مع فريق الدعم" accent={C.muted} onPress={() => Alert.alert('الدعم والمساعدة', 'سيتم ربط وسيلة الدعم لاحقاً.')} />
         <View style={styles.appVersionRow}>
-          <Text style={styles.appVersionValue}>1.0.8</Text>
+          <Text style={styles.appVersionValue}>{Application.nativeApplicationVersion || '1.0.9'}</Text>
           <View style={styles.appVersionText}>
             <Text style={styles.appVersionTitle}>إصدار التطبيق</Text>
             <Text style={styles.appVersionSub}>Amal School App</Text>
@@ -970,6 +1009,13 @@ function AppMobileFixedStableContent() {
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [requiresSetup, setRequiresSetup] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkForAndroidUpdate();
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let alive = true;
