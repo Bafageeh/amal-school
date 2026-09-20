@@ -97,6 +97,17 @@ jobs:
           j.expo.splash = { image: './assets/splash-icon.png', resizeMode: 'contain', backgroundColor: '#EEF4FF' };
           fs.writeFileSync(p, JSON.stringify(j,null,2));
           NODE
+      - name: Set Android build version
+        working-directory: mobile
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = 'app.json';
+          const j = JSON.parse(fs.readFileSync(p, 'utf8'));
+          j.expo.android = j.expo.android || {};
+          j.expo.android.versionCode = Number(process.env.GITHUB_RUN_NUMBER);
+          fs.writeFileSync(p, JSON.stringify(j, null, 2));
+          NODE
       - name: Prebuild Android project
         working-directory: mobile
         run: npx expo prebuild --platform android --clean --non-interactive
@@ -120,8 +131,86 @@ jobs:
       - name: Build bundled release APK
         working-directory: mobile/android
         run: ./gradlew assembleRelease --no-daemon
+      - name: Prepare SSH key for APK publishing
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_PRIVATE_KEY: ${{ secrets.AMAL_SSH_PRIVATE_KEY }}
+          SSH_PRIVATE_KEY_B64: ${{ secrets.AMAL_SSH_PRIVATE_KEY_B64 }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          SSH_PORT="${SSH_PORT:-22}"
+          KEY_FILE="$HOME/.ssh/amal_github_actions"
+          mkdir -p "$HOME/.ssh"
+          normalize_key() {
+            python3 -c 'import pathlib, sys; p=pathlib.Path(sys.argv[1]); text=p.read_text(); text=text.replace("\\r", "\r").replace("\\n", "\n"); text=text.replace("\r\n", "\n").replace("\r", "\n"); p.write_text(text if text.endswith("\n") else text + "\n")' "$1"
+          }
+          KEY_OK=0
+          if [ -n "${SSH_PRIVATE_KEY:-}" ]; then
+            printf '%s' "$SSH_PRIVATE_KEY" > "$KEY_FILE"
+            normalize_key "$KEY_FILE"
+            chmod 600 "$KEY_FILE"
+            ssh-keygen -y -f "$KEY_FILE" >/dev/null 2>&1 && KEY_OK=1 || true
+          fi
+          if [ "$KEY_OK" != "1" ] && [ -n "${SSH_PRIVATE_KEY_B64:-}" ]; then
+            printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d '\r\n ' | base64 -d > "$KEY_FILE"
+            normalize_key "$KEY_FILE"
+            chmod 600 "$KEY_FILE"
+            ssh-keygen -y -f "$KEY_FILE" >/dev/null 2>&1 && KEY_OK=1 || true
+          fi
+          if [ "$KEY_OK" != "1" ]; then
+            echo "::error::No usable SSH private key found."
+            exit 1
+          fi
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> "$HOME/.ssh/known_hosts"
+
+      - name: Publish latest APK and update manifest
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_USER: ${{ secrets.AMAL_SSH_USER }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+          PROJECT_PATH_SECRET: ${{ secrets.AMAL_PROJECT_PATH }}
+        run: |
+          set -euo pipefail
+          SSH_PORT="${SSH_PORT:-22}"
+          KEY_FILE="$HOME/.ssh/amal_github_actions"
+          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
+          PROJECT_PATH="${PROJECT_PATH_SECRET:-}"
+          DEPLOY_USER=""
+          CANDIDATES="${SSH_USER:-} pmsa root"
+          for candidate in $CANDIDATES; do
+            [ -z "$candidate" ] && continue
+            if ssh $SSH_OPTS "$candidate@$SSH_HOST" "echo connected" >/dev/null 2>&1; then
+              DEPLOY_USER="$candidate"
+              break
+            fi
+          done
+          if [ -z "$DEPLOY_USER" ]; then
+            echo "::error::SSH authentication failed."
+            exit 1
+          fi
+          if [ -z "$PROJECT_PATH" ]; then
+            PROJECT_PATH="/mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api"
+          fi
+
+          APK_PATH=$(find mobile/android/app/build/outputs/apk/release -name '*.apk' -type f | head -1)
+          VERSION_NAME=$(node -p "require('./mobile/app.json').expo.version")
+          VERSION_CODE="$GITHUB_RUN_NUMBER"
+          mkdir -p /tmp/amal-update
+          cp "$APK_PATH" /tmp/amal-update/amal-latest.apk
+          cat > /tmp/amal-update/android.json <<EOF
+          {
+            "version_name": "$VERSION_NAME",
+            "version_code": $VERSION_CODE,
+            "apk_url": "https://amal.pm.sa/updates/amal-latest.apk",
+            "published_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH/public/updates'"
+          scp -P "$SSH_PORT" -i "$KEY_FILE" -o IdentitiesOnly=yes             /tmp/amal-update/amal-latest.apk             /tmp/amal-update/android.json             "$DEPLOY_USER@$SSH_HOST:$PROJECT_PATH/public/updates/"
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: amal-settings-icon-v107-apk
+          name: amal-school-auto-update-apk
           path: mobile/android/app/build/outputs/apk/release/*.apk
