@@ -141,5 +141,5 @@ $grade = $assessment['grade'];
     @endforeach
     <div class="assessment-footer">مديرة المدرسة : مشاعل العنبري</div>
 </div>
-<link rel="stylesheet" href="{{ asset('css/teacher-assessment.css') }}?v=1">
+<link rel="stylesheet" href="{{ asset('css/teacher-assessment.css') }}?v=2">
 @endsection
