@@ -12,7 +12,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.jsx', 'resources/js/evidence-show.jsx', 'resources/js/settings.jsx', 'resources/js/teacher-evidence.jsx'])
     @endif
     <link rel="stylesheet" href="{{ asset('css/school-theme.css') }}?v=1448-2">
-    <link rel="stylesheet" href="{{ asset('css/school-back.css') }}?v=1">
+    <link rel="stylesheet" href="{{ asset('css/school-back.css') }}?v=2">
 </head>
 <body class="@auth app-auth @else app-guest @endauth">
 <a class="skip-link" href="#main-content">انتقلي إلى المحتوى</a>
