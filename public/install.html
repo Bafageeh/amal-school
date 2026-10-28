@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#7B6BAA">
+<title>تطبيق المتوسطة ١١٢ | التثبيت</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Tahoma,Arial,sans-serif;color:#4e366e;background:radial-gradient(circle at 25% 0%,#e2d4f6,transparent 40%),linear-gradient(145deg,#faf7ff,#f0e6fa);min-height:100vh;display:grid;place-items:center;padding:22px}
+main{width:min(100%,510px);padding:35px 26px;border-radius:32px;background:#ffffffef;border:1px solid #e6d7f0;text-align:center;box-shadow:0 22px 54px #61458020}
+.school-logo{display:block;width:130px;height:142px;object-fit:contain;margin:0 auto 12px;background:#fff;padding:5px;border-radius:26px;box-shadow:0 12px 26px #75579b1d}
+.eyebrow{font-size:12px;color:#8163aa;font-weight:800}h1{font-size:27px;margin:11px 0;color:#553b7c}p{font-size:14px;line-height:2;color:#77678a}.button{display:block;background:linear-gradient(110deg,#9478bc,#6c4b9e);text-decoration:none;padding:16px;color:white;border-radius:17px;font-weight:bold;margin:22px 0 12px;box-shadow:0 8px 20px #7b6baa35}
+.hint{font-size:12px;color:#826e96}.status{color:#755991;margin:12px 0 4px;font-size:12px}.link{color:#70519b;text-decoration:underline}.features{margin:24px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:right}.features span{border-radius:12px;background:#f3ecfa;color:#6a5289;padding:11px;font-size:12px}
+</style>
+</head>
+<body>
+<main>
+<img src="/images/school-logo.svg" alt="شعار المتوسطة ١١٢" class="school-logo">
+<div class="eyebrow">المتوسطة الثانية عشر بعد المئة</div>
+<h1>تطبيق المتوسطة ١١٢</h1>
+<p>منصة المدرسة بين يديكِ: حسابات المديرة والمعلمات، رفع الشواهد لكل مؤشر، التقييم الموزون، ومتابعة النتائج.</p>
+<a class="button" href="/updates/amal-latest.apk" download>تنزيل تطبيق Android</a>
+<div id="version" class="status">نسخة Android · تعمل بالإنترنت</div>
+<div class="hint">بعد تنزيل الملف، افتحيه واسمحي بتثبيت التطبيقات من هذا المصدر عند الحاجة.</div>
+<div class="features"><span>✓ حسابات ٣٠ معلمة</span><span>✓ معايير التقييم</span><span>✓ رفع الشواهد</span><span>✓ متابعة النتائج</span></div>
+<p><a class="link" href="/login">أو افتحي المنصة عبر المتصفح</a></p>
+</main>
+<script>
+fetch('/updates/android.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{
+ if(v && v.version_name)document.getElementById('version').textContent='الإصدار '+v.version_name+' · Android';
+}).catch(()=>{});
+</script>
+</body>
+</html>
