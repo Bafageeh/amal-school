@@ -3,9 +3,9 @@
 @section('content')
 <div class="login-shell">
     <div class="card login-card">
-        <div class="login-logo">A</div>
+        <div class="login-logo school-login-emblem"><img src="{{ asset('images/school-logo.svg') }}" alt="شعار المتوسطة ١١٢"></div>
         <h2>تسجيل الدخول</h2>
-        <p class="muted">أدخلي اسم المستخدم والرقم السري للدخول إلى منصة Amal.</p>
+        <p class="muted">مرحبًا بكِ في منصة إدارة المتوسطة ١١٢. أدخلي اسم المستخدم والرقم السري.</p>
 
         <form method="POST" action="{{ route('login.post') }}">
             @csrf
