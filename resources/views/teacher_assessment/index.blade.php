@@ -39,7 +39,7 @@
     </div>
     <p id="no-teacher-results" class="assessment-empty" hidden>لا توجد معلمة مطابقة للاسم.</p>
 </div>
-<link rel="stylesheet" href="{{ asset('css/teacher-assessment.css') }}?v=1">
+<link rel="stylesheet" href="{{ asset('css/teacher-assessment.css') }}?v=2">
 <script>
 (() => {
  const input = document.getElementById('teacher-search');
