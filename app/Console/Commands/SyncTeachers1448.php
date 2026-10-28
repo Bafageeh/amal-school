@@ -17,7 +17,7 @@ class SyncTeachers1448 extends Command
         {--school-id= : Explicit school ID instead of principal email}
         {--apply : Save changes; otherwise preview only}';
 
-    protected $description = 'Synchronize the 1448 teacher roster safely, preserving existing accounts and evidence';
+    protected $description = 'Synchronize the final 30-teacher 1448 roster safely, preserving existing accounts and evidence';
 
     public function handle(): int
     {
@@ -32,9 +32,9 @@ class SyncTeachers1448 extends Command
 
         $names = $payload['teachers'] ?? [];
 
-        if (!is_array($names) || count($names) !== 52 ||
-            count(array_filter($names, fn ($n) => is_string($n) && trim($n) !== '')) !== 52) {
-            $this->error('القائمة غير مكتملة؛ المتوقع 52 اسمًا.');
+        if (!is_array($names) || count($names) !== 30 ||
+            count(array_filter($names, fn ($n) => is_string($n) && trim($n) !== '')) !== 30) {
+            $this->error('القائمة غير مكتملة؛ المتوقع 30 اسمًا.');
             return self::FAILURE;
         }
 
