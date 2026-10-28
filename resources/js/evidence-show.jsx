@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Icon, PageHeading, CollectionToolbar, LoadingCard, ErrorCard, NoResults, matches, number } from './ui';
 
 function getCookie(name) {
     return document.cookie
@@ -93,26 +94,28 @@ function canPreview(upload) {
     return type.startsWith('image/') || type === 'application/pdf' || type.startsWith('video/') || type.startsWith('audio/') || type.startsWith('text/');
 }
 
-function LoadingCard() {
-    return (
-        <div className="card empty-state">
-            <div className="empty-icon">⏳</div>
-            <strong>جاري تحميل البيانات</strong>
-            <span>يتم الآن جلب بيانات الشاشة من API.</span>
-        </div>
-    );
-}
-
-function ErrorCard({ message }) {
-    return (
-        <div className="alert error">
-            <strong>تعذر تحميل بيانات React من API.</strong>
-            <div>{message}</div>
-        </div>
-    );
-}
-
 function UploadPreviewModal({ upload, onClose, onDelete }) {
+    const modalRef = useRef(null);
+    const closeRef = useRef(onClose);
+    closeRef.current = onClose;
+    useEffect(() => {
+        if (!upload) return;
+        const opener = document.activeElement;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        modalRef.current?.querySelector('button')?.focus();
+        function onKey(event) {
+            if (event.key === 'Escape') closeRef.current();
+            if (event.key !== 'Tab') return;
+            const controls = modalRef.current?.querySelectorAll('button:not([disabled]), a[href], iframe, video[controls], audio[controls]');
+            if (!controls?.length) return;
+            const first = controls[0], last = controls[controls.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }
+        document.addEventListener('keydown', onKey);
+        return () => { document.body.style.overflow = previousOverflow; document.removeEventListener('keydown', onKey); opener?.focus(); };
+    }, [upload]);
     if (!upload) return null;
 
     const type = upload.file_type || '';
@@ -122,12 +125,12 @@ function UploadPreviewModal({ upload, onClose, onDelete }) {
 
     return (
         <div className="file-preview-backdrop" onClick={onClose}>
-            <div className="file-preview-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="file-preview-modal" role="dialog" aria-modal="true" aria-label={"معاينة الملف: " + upload.title} ref={modalRef} onClick={(event) => event.stopPropagation()}>
                 <div className="file-preview-grabber" />
                 <div className="file-preview-header">
-                    <button type="button" className="file-preview-close" onClick={onClose}>×</button>
+                    <button type="button" className="file-preview-close" aria-label="إغلاق المعاينة" onClick={onClose}>×</button>
                     <strong>عرض الملف</strong>
-                    <a className="file-preview-more" href={upload.download_url}>⬇</a>
+                    <a className="file-preview-more" href={upload.download_url} aria-label="تحميل الملف"><Icon name="download" size={18} /></a>
                 </div>
 
                 <div className="file-preview-file-row">
@@ -223,7 +226,7 @@ function EvidenceUploadForm({ evidenceId, onUploaded }) {
 
     return (
         <section className="card">
-            <h3>رفع ملفات على معيار التقييم هذا</h3>
+            <h3>أضيفي شاهدًا جديدًا</h3><p className="muted">اختاري ملفاتك وأضيفي عنوانًا أو ملاحظات لتسهيل الرجوع إليها.</p>
             {status.error && <div className="alert error">{status.error}</div>}
             {status.success && <div className="alert success">{status.success}</div>}
 
@@ -241,7 +244,7 @@ function EvidenceUploadForm({ evidenceId, onUploaded }) {
                 <label>
                     الملفات
                     <input type="file" multiple required onChange={(event) => setFiles(Array.from(event.target.files || []))} />
-                    <small className="muted">يمكن اختيار أكثر من ملف دفعة واحدة.</small>
+                    <small className="muted">يمكن اختيار أكثر من ملف دفعة واحدة.</small>{files.length > 0 && <p className="form-note" role="status">تم اختيار {number(files.length)} ملف: {files.map(file => file.name).join("، ")}</p>}
                 </label>
 
                 <div className="actions">
@@ -258,6 +261,8 @@ function EvidenceUploadForm({ evidenceId, onUploaded }) {
 function EvidenceShowApp({ evidenceId }) {
     const [state, setState] = useState({ loading: true, error: null, user: null, item: null, uploads: [] });
     const [previewUpload, setPreviewUpload] = useState(null);
+    const [query, setQuery] = useState('');
+    const [filter, setFilter] = useState('all');
     const isPrincipal = useMemo(() => state.user?.role === 'principal', [state.user]);
 
     async function load() {
@@ -298,72 +303,33 @@ function EvidenceShowApp({ evidenceId }) {
 
     if (state.loading) return <LoadingCard />;
     if (state.error) return <ErrorCard message={state.error} />;
+    const filteredUploads = state.uploads.filter(upload => {
+        const tone = fileKind(upload).tone;
+        const correctType = filter === 'all' || (filter === 'other' ? !['pdf', 'image', 'doc'].includes(tone) : tone === filter);
+        return correctType && matches(query, upload.title, upload.notes, upload.uploader?.name);
+    });
 
     return (
         <div className="react-evidence-show">
-            <style>{`
-                @media (max-width: 980px) {
-                    .react-evidence-show .uploads-list { gap: 12px !important; }
-                    .react-evidence-show .native-upload-card { min-height: auto !important; padding: 16px !important; border-radius: 24px !important; background: #fff !important; border: 1px solid #e5e7eb !important; box-shadow: 0 10px 22px rgba(15,23,42,.06) !important; cursor: pointer; touch-action: manipulation; }
-                    .react-evidence-show .native-upload-card:active { transform: scale(.992); }
-                    .react-evidence-show .native-upload-main { display: flex !important; flex-direction: row !important; align-items: flex-start !important; gap: 14px !important; direction: ltr !important; }
-                    .native-upload-info { width: 100%; min-width: 0; text-align: right; direction: rtl; }
-                    .react-evidence-show .native-upload-info strong { display: block !important; color: #0f172a !important; font-size: 19px !important; line-height: 1.35 !important; font-weight: 950 !important; text-align: right !important; }
-                    .react-evidence-show .native-upload-info .muted { margin-top: 5px !important; color: #64748b !important; font-size: 13px !important; line-height: 1.5 !important; text-align: right !important; }
-                    .react-evidence-show .native-upload-footer { margin-top: 12px !important; padding-top: 10px !important; border-top: 1px solid #eef2f7 !important; display: flex !important; justify-content: flex-end !important; }
-                    .react-evidence-show .native-upload-footer span { color: #64748b !important; font-size: 12.5px !important; font-weight: 700 !important; direction: ltr !important; }
-                    .react-evidence-show .native-upload-footer span::after { content: ' ◷'; color: #94a3b8; }
-                }
-                .native-file-icon { width: 62px; height: 62px; min-width: 62px; display: grid; place-items: center; border-radius: 20px; font-weight: 950; font-size: 15px; letter-spacing: -.5px; }
-                .native-file-icon.pdf { background: #fee2e2; color: #dc2626; }
-                .native-file-icon.image { background: #eaf7ee; color: #22a66f; }
-                .native-file-icon.video { background: #f1edff; color: #5b45ce; font-size: 24px; }
-                .native-file-icon.audio { background: #fff7ed; color: #ea580c; font-size: 24px; }
-                .native-file-icon.doc, .native-file-icon.file { background: #eef4ff; color: #2563eb; }
-                .native-file-icon.sheet { background: #ecfdf5; color: #16a34a; }
-                .native-file-icon.slide { background: #fef3c7; color: #d97706; }
-                .file-preview-backdrop { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: flex-end; justify-content: center; background: rgba(15,23,42,.55); direction: rtl; }
-                .file-preview-modal { width: 100%; max-width: 720px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; border-radius: 30px 30px 0 0; background: #fff; box-shadow: 0 -22px 70px rgba(15,23,42,.32); }
-                .file-preview-grabber { width: 52px; height: 6px; margin: 10px auto 0; border-radius: 999px; background: #d1d5db; }
-                .file-preview-header { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 10px; padding: 12px 16px; }
-                .file-preview-header strong { text-align: center; color: #0f172a; font-size: 20px; font-weight: 950; }
-                .file-preview-close, .file-preview-more { width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: 999px; background: #f1f5f9; color: #0f172a; font-size: 26px; line-height: 1; cursor: pointer; text-decoration: none; }
-                .file-preview-more { font-size: 19px; color: #2563eb; }
-                .file-preview-file-row { margin: 0 16px 12px; padding: 12px; display: flex; gap: 12px; align-items: center; flex-direction: row-reverse; border: 1px solid #e5e7eb; border-radius: 18px; background: #fff; }
-                .file-preview-file-row > div:last-child { min-width: 0; width: 100%; text-align: right; }
-                .file-preview-file-row strong { display: block; color: #0f172a; font-size: 16px; line-height: 1.35; font-weight: 950; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                .file-preview-file-row span { display: block; margin-top: 4px; color: #64748b; font-size: 12px; }
-                .file-preview-body { min-height: 350px; max-height: 58vh; display: grid; place-items: center; overflow: auto; background: #f8fafc; border-top: 1px solid #eef2f7; border-bottom: 1px solid #eef2f7; }
-                .file-preview-body iframe, .file-preview-body video, .file-preview-body img { width: 100%; height: 58vh; max-height: 58vh; border: 0; object-fit: contain; background: #f8fafc; }
-                .file-preview-body audio { width: calc(100% - 28px); }
-                .file-preview-empty { display: grid; place-items: center; gap: 10px; padding: 28px; text-align: center; color: #64748b; }
-                .file-preview-empty strong { color: #0f172a; font-size: 18px; }
-                .file-preview-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 16px 18px; background: #fff; }
-                @media (min-width: 981px) { .file-preview-backdrop { align-items: center; padding: 18px; } .file-preview-modal { border-radius: 30px; } }
-            `}</style>
 
-            <section className="hero-card">
-                <div>
-                    <span className="hero-kicker">React + API</span>
-                    <h1>{state.item.title}</h1>
-                    <p>{state.item.description || 'لا يوجد وصف لهذا المعيار.'}</p>
-                </div>
-                <div className="hero-badge">✅</div>
-            </section>
+            <PageHeading title={state.item.title} description={state.item.description || 'وثّقي إنجازك برفع الملفات والشواهد المرتبطة بهذا المعيار.'} icon="check" back={{ href: '/evidence', label: 'معايير التقييم' }}>
+                {isPrincipal && <a className="btn light" href={'/evidence/' + state.item.id + '/edit'}><Icon name="edit" size={16} />تعديل المعيار</a>}
+            </PageHeading>
 
             <EvidenceUploadForm evidenceId={state.item.id} onUploaded={handleUploaded} />
 
             <section className="card">
                 <h3>{isPrincipal ? 'الملفات المرفوعة' : 'ملفاتي على معيار التقييم هذا'}</h3>
-                {state.uploads.length ? (
+                <CollectionToolbar query={query} onQuery={setQuery} placeholder="ابحثي في الملفات أو اسم المعلمة..." count={filteredUploads.length}><select aria-label="نوع الملف" value={filter} onChange={event => setFilter(event.target.value)}><option value="all">جميع الملفات</option><option value="pdf">PDF</option><option value="image">صور</option><option value="doc">مستندات</option><option value="other">أنواع أخرى</option></select></CollectionToolbar>
+                {filteredUploads.length ? (
                     <div className="uploads-list">
-                        {state.uploads.map((upload) => (
+                        {filteredUploads.map((upload) => (
                             <UploadRow key={upload.id} upload={upload} isPrincipal={isPrincipal} onPreview={setPreviewUpload} />
                         ))}
                     </div>
-                ) : (
+                ) : state.uploads.length ? <NoResults onReset={() => { setQuery(''); setFilter('all'); }} /> : (
                     <div className="empty-state">
-                        <div className="empty-icon">📂</div>
+                        <div className="empty-icon"><Icon name="folder" size={30} /></div>
                         <strong>لا توجد ملفات مرفوعة حتى الآن</strong>
                     </div>
                 )}
@@ -386,3 +352,4 @@ if (document.readyState === 'loading') {
 } else {
     mountEvidenceShow();
 }
+

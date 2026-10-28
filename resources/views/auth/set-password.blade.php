@@ -3,9 +3,9 @@
 @section('title', 'تعيين الرقم السري')
 
 @section('content')
-<div class="login-shell">
+<div class="login-shell compact">
     <div class="card login-card">
-        <div class="login-logo">A</div>
+        <div class="login-logo"><img src="{{ asset('images/school-logo.svg') }}" alt="شعار المتوسطة ١١٢"></div>
         <h2>تعيين الرقم السري</h2>
         <p class="muted">هذا أول دخول لك. أدخلي رقمًا سريًا جديدًا من 4 خانات.</p>
 
@@ -27,3 +27,4 @@
     </div>
 </div>
 @endsection
+

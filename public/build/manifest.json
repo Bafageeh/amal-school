@@ -1,10 +1,10 @@
 {
-  "_jsx-runtime-CUp5zjl2.js": {
-    "file": "assets/jsx-runtime-CUp5zjl2.js",
-    "name": "jsx-runtime"
+  "_ui-tpBKUIem.js": {
+    "file": "assets/ui-tpBKUIem.js",
+    "name": "ui"
   },
   "resources/css/app.css": {
-    "file": "assets/app-BMzVvJ5f.css",
+    "file": "assets/app-C6R8x1lJ.css",
     "name": "app",
     "names": [
       "app.css"
@@ -13,39 +13,39 @@
     "isEntry": true
   },
   "resources/js/app.jsx": {
-    "file": "assets/app-DSF3HkNa.js",
+    "file": "assets/app-bNaNZBT2.js",
     "name": "app",
     "src": "resources/js/app.jsx",
     "isEntry": true,
     "imports": [
-      "_jsx-runtime-CUp5zjl2.js"
+      "_ui-tpBKUIem.js"
     ]
   },
   "resources/js/evidence-show.jsx": {
-    "file": "assets/evidence-show-DSC2NGa6.js",
+    "file": "assets/evidence-show-4nYJMprK.js",
     "name": "evidence-show",
     "src": "resources/js/evidence-show.jsx",
     "isEntry": true,
     "imports": [
-      "_jsx-runtime-CUp5zjl2.js"
+      "_ui-tpBKUIem.js"
     ]
   },
   "resources/js/settings.jsx": {
-    "file": "assets/settings-BDoeY1qq.js",
+    "file": "assets/settings-DGs7yOTH.js",
     "name": "settings",
     "src": "resources/js/settings.jsx",
     "isEntry": true,
     "imports": [
-      "_jsx-runtime-CUp5zjl2.js"
+      "_ui-tpBKUIem.js"
     ]
   },
   "resources/js/teacher-evidence.jsx": {
-    "file": "assets/teacher-evidence-_jde7a_3.js",
+    "file": "assets/teacher-evidence-CCIAoMav.js",
     "name": "teacher-evidence",
     "src": "resources/js/teacher-evidence.jsx",
     "isEntry": true,
     "imports": [
-      "_jsx-runtime-CUp5zjl2.js"
+      "_ui-tpBKUIem.js"
     ]
   }
 }

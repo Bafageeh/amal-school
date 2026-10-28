@@ -4,8 +4,8 @@
 
 @section('content')
 @php($secret = 'pass'.'word')
-<div style="max-width:460px;margin:70px auto;">
-    <div class="card">
+<div class="login-shell compact">
+    <div class="login-card">
         <h2 style="margin-top:0;">اعتماد الحساب</h2>
         <p class="muted">هذا أول دخول لك. فضلاً أدخلي الاسم والرقم السري الجديد من 4 خانات، وسيتم اعتمادهما للدخول بعد ذلك.</p>
 
@@ -32,3 +32,4 @@
     </div>
 </div>
 @endsection
+

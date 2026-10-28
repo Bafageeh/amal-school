@@ -1,7 +1,82 @@
-.assessment-page{direction:rtl;display:grid;gap:18px;color:#45325f;padding-bottom:32px}body:has(.assessment-page) .page,body:has(.assessment-page) .content{max-width:1160px!important}.assessment-intro{background:linear-gradient(125deg,#c6ace8,#8365ae);border-radius:26px;padding:27px 30px;color:white}.assessment-intro h1{font-size:30px;margin:12px 0 6px;color:white}.assessment-intro p{margin:6px 0;color:#f6eaff}.assessment-eyebrow{font-size:13px;font-weight:800}.assessment-summary{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}.assessment-summary span{padding:7px 12px;border:1px solid #ffffff77;border-radius:18px;background:#ffffff24;font-size:12px}.assessment-crumbs{font-size:13px;color:#7d659c}.assessment-search{background:white;border:1px solid #e4d7f0;padding:18px;border-radius:20px}.assessment-search label{display:block;margin-bottom:5px}.assessment-teachers-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}.assessment-teacher-card{display:flex;align-items:center;gap:12px;background:white;border:1px solid #e5d9f0;padding:17px;border-radius:20px}.assessment-teacher-card[hidden]{display:none!important}.assessment-avatar{width:46px;height:46px;flex:none;border-radius:14px;display:grid;place-items:center;background:#efe5fb;color:#7352a0;font-size:22px;font-weight:900}.assessment-teacher-main{flex:1;min-width:0;display:grid;gap:7px}.assessment-teacher-main strong{font-size:14px;color:#573e79}.assessment-teacher-main small{font-size:11px;color:#8b7c9b}.assessment-arrow{font-size:23px;color:#9274b6}.assessment-progress{height:8px;overflow:hidden;border-radius:99px;background:#eee6f7}.assessment-progress>div{height:100%;border-radius:99px;background:linear-gradient(90deg,#a082d0,#70549c)}.assessment-score-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.assessment-score-card{display:grid;gap:10px;background:white;border:1px solid #e6d9f0;border-radius:21px;padding:22px}.assessment-score-card span{font-size:14px;color:#6a538b}.assessment-score-card strong{font-size:32px;color:#604387}.assessment-score-card small{color:#7d6c92;font-size:12px}.assessment-note{padding:14px 17px;background:#f1eafb;border:1px solid #ddccef;border-radius:15px;color:#624b80;font-size:13px;line-height:1.9}.assessment-criterion{display:grid;gap:15px;padding:20px;border:1px solid #e6daf0;background:white;border-radius:23px}.assessment-criterion-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.assessment-criterion-title{display:flex;gap:12px}.assessment-criterion-no{width:39px;height:39px;border-radius:12px;display:grid;place-items:center;background:#8265b2;color:white;font-weight:900;flex:none}.assessment-criterion h2{margin:0 0 5px!important;font-size:18px!important;color:#573e79!important}.assessment-criterion-title p{margin:0;color:#81748d;font-size:12px}.assessment-weight{background:#f0e7fa;border-radius:10px;padding:7px 10px;white-space:nowrap;font-size:12px;color:#74559e;font-weight:900}.assessment-criterion-result{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;font-size:12px;color:#725b90}.assessment-indicators{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}.assessment-indicator{display:grid;align-content:start;gap:11px;border-radius:17px;padding:15px}.assessment-indicator.is-empty{background:#faf7fe;color:#604b79;border:1px solid #e7ddf1}.assessment-indicator.is-submitted{background:linear-gradient(145deg,#9072bc,#614786);color:#fff;border:1px solid #6e5098}.assessment-indicator-header{display:flex;align-items:start;gap:9px}.assessment-indicator-marker{width:27px;height:27px;display:grid;place-items:center;background:#eae0f5;border-radius:8px;color:#735499;flex:none;font-weight:900}.is-submitted .assessment-indicator-marker{background:#ffffff44;color:#fff}.assessment-indicator-name{display:grid;gap:5px;min-width:0}.assessment-indicator-name strong{font-size:13px;line-height:1.6}.assessment-indicator-name small{font-size:11px;opacity:.78}.assessment-attachment{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px;border-radius:10px;background:#ffffff2a;font-size:11px}.assessment-attachment a{color:inherit;text-decoration:underline;flex:1;overflow-wrap:anywhere}.assessment-attachment form,.assessment-upload-form{margin:0!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}.assessment-upload-form{display:grid;gap:8px}.assessment-upload-form input{font-size:11px;width:100%;padding:8px!important;background:#fff!important;color:#65468b}.assessment-upload-form button,.assessment-rating button{border:0;border-radius:10px;background:#eadff6;color:#684d8f;padding:9px 12px;font-weight:900;cursor:pointer}.assessment-delete{border:0;background:#ffffff44;color:inherit;border-radius:8px;font-size:20px;cursor:pointer}.assessment-rating{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:13px!important;background:#f4edfc!important;border:1px solid #e1d1f1!important;border-radius:15px!important}.assessment-rating select{width:220px;margin:0}.assessment-rating button{background:#7555a1;color:white}.assessment-rating label{font-size:12px}.assessment-footer{text-align:center;padding:22px;color:#74539d;font-weight:900}.assessment-empty{text-align:center;color:#7e6a95}@media(max-width:750px){.assessment-score-grid,.assessment-indicators,.assessment-teachers-grid{grid-template-columns:1fr}.assessment-criterion{padding:15px}.assessment-criterion-head{flex-wrap:wrap}.assessment-intro{padding:20px}.assessment-rating{display:grid}.assessment-rating select{width:100%}}
-
-/* Keep upload controls compact despite the shared native form rules. */
-html body .assessment-page form.assessment-upload-form,html body .assessment-page form.assessment-attachment-form{padding:0!important;margin:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
-html body .assessment-page form.assessment-rating{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:10px!important;background:#f4edfc!important;padding:13px!important;border:1px solid #e1d1f1!important;border-radius:15px!important}
-html body .assessment-page .assessment-indicator.is-submitted .assessment-indicator-name strong{color:white!important}
-@media(max-width:750px){html body .assessment-page form.assessment-rating{display:grid!important}}
+/* Teacher performance — shared Amal lavender identity */
+.assessment-page {display:grid;gap:23px;direction:rtl;min-width:0}
+.assessment-intro {position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(110deg,#f0e6fa,#faf6fe);border:1px solid #e6daf2;border-radius:23px;padding:27px 30px;color:#624578}
+.assessment-intro::after {content:'';position:absolute;width:250px;height:250px;left:-85px;top:-140px;border:25px solid #d8c4ed25;border-radius:50%;pointer-events:none;z-index:-1}
+.assessment-eyebrow {font-size:11px;color:#8a6a9f;font-weight:500}
+.assessment-intro h1 {font-size:27px;line-height:1.5;color:#503561;margin:7px 0}
+.assessment-intro p {color:#7b618d;font-size:12px;max-width:720px}
+.assessment-intro .assessment-teacher-name {font-size:17px;font-weight:700;color:#795494;margin:6px 0}
+.assessment-summary {display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.assessment-summary span {font-size:11px;padding:5px 11px;border:1px solid #e4d6ee;border-radius:8px;background:#ffffffa8;color:#846594}
+.assessment-crumbs {display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:11px;color:#8a739d}
+.assessment-crumbs a {color:#78538e}
+.assessment-search {display:flex;align-items:center;gap:15px;padding:13px 16px;border:1px solid var(--line);border-radius:15px;background:#fff}
+.assessment-search label {margin:0;white-space:nowrap;font-size:11px;color:#796385}
+.assessment-search input {min-height:40px;font-size:12px;border-radius:10px;background:#fbf8fd}
+.assessment-teachers-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:14px}
+.assessment-teacher-card {display:flex;align-items:center;gap:14px;border:1px solid var(--line);border-radius:18px;padding:20px;background:#fff;box-shadow:var(--shadow);transition:border-color .18s,transform .18s}
+.assessment-teacher-card[hidden] {display:none!important}
+.assessment-teacher-card:hover {border-color:#d8bfe9;transform:translateY(-2px)}
+.assessment-avatar {display:grid;place-items:center;width:44px;height:48px;flex:0 0 44px;border-radius:14px;background:#f0e7f8;color:#9a77b8;font-size:21px;font-weight:700}
+.assessment-teacher-main {display:grid;gap:7px;flex:1;min-width:0}
+.assessment-teacher-main strong {font-size:13px;color:#604274;overflow-wrap:anywhere}
+.assessment-teacher-main small {font-size:11px;color:#887195}
+.assessment-arrow {color:#a487b8;font-size:19px}
+.assessment-progress {height:6px;background:#efe8f7;border-radius:20px;overflow:hidden}
+.assessment-progress>div {height:100%;border-radius:20px;background:linear-gradient(90deg,#b89ad4,#8160a3)}
+.assessment-score-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.assessment-score-card {display:grid;gap:12px;padding:24px;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow)}
+.assessment-score-card>span {font-size:12px;color:#80628e}
+.assessment-score-card>strong {font-size:31px;color:#73518d;font-weight:800;line-height:1.4;font-variant-numeric:tabular-nums}
+.assessment-score-card small {font-size:11px;color:#8b7398;line-height:1.9}
+.assessment-note {padding:15px 19px;border:1px solid #e7dcf1;background:#f3edf9;border-radius:14px;font-size:11px;color:#846696;line-height:2}
+.assessment-criterion {display:grid;gap:17px;border:1px solid var(--line);border-radius:22px;padding:24px;background:#fff;box-shadow:var(--shadow);scroll-margin-top:100px}
+.assessment-criterion-head {display:flex;align-items:flex-start;justify-content:space-between;gap:15px}
+.assessment-criterion-title {display:flex;gap:13px;min-width:0}
+.assessment-criterion-no {display:grid;place-items:center;flex:0 0 38px;width:38px;height:41px;border-radius:12px;background:#eee4f8;color:#8b63a9;font-size:17px;font-weight:700}
+.assessment-criterion h2 {font-size:17px;color:#654477;margin:0 0 4px}
+.assessment-criterion-title p {font-size:11px;color:#8c759a;line-height:1.9}
+.assessment-weight {white-space:nowrap;padding:5px 10px;border:1px solid #e9ddf1;background:#f9f5fd;border-radius:8px;color:#926daa;font-size:11px;font-weight:600}
+.assessment-criterion-result {display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:11px;color:#92749f}
+.assessment-indicators {display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+.assessment-indicator {display:grid;align-content:start;gap:13px;min-width:0;padding:17px;border:1px solid #ece3f3;border-radius:16px;background:#faf7fd;color:#79568e}
+.assessment-indicator.is-submitted {background:linear-gradient(130deg,#9e7bbb,#785994);color:#fff;border-color:#9572b1}
+.assessment-indicator-header {display:flex;align-items:flex-start;gap:10px}
+.assessment-indicator-marker {display:grid;place-items:center;flex:0 0 26px;width:26px;height:27px;border-radius:8px;background:#ede2f6;color:#9167a9;font-size:12px;font-weight:700}
+.is-submitted .assessment-indicator-marker {background:#ffffff26;color:#fff}
+.assessment-indicator-name {display:grid;gap:5px;min-width:0}
+.assessment-indicator-name strong {font-size:12px;line-height:1.8;font-weight:600;overflow-wrap:anywhere}
+.assessment-indicator-name small {font-size:11px;color:#967ba4}
+.is-submitted .assessment-indicator-name small {color:#f2e7fa}
+.assessment-attachment {display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:11px;padding:9px 10px;border:1px solid #ffffff24;border-radius:10px;background:#ffffff12}
+.assessment-attachment a {color:inherit;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere;flex:1}
+.assessment-attachment small {font-size:10px;color:#f1e5fa}
+.assessment-attachment form,.assessment-upload-form {margin:0;padding:0;border:0;background:transparent;box-shadow:none}
+.assessment-upload-form {display:grid;gap:9px}
+.assessment-upload-form input {width:100%;padding:8px;min-height:44px;border:1px dashed #d7c1e7;background:#fff;color:#826492;font-size:11px;border-radius:9px}
+.assessment-upload-form input::file-selector-button {padding:5px 7px;margin-inline-end:6px;font-size:10px}
+.assessment-upload-form button,.assessment-rating button {display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:8px 13px;border:1px solid #e5d6ef;border-radius:9px;background:#ece0f7;color:#7d5896;font-weight:600;font-size:11px}
+.is-submitted .assessment-upload-form button {background:#ffffff21;border-color:#ffffff35;color:#fff}
+.assessment-delete {display:grid;place-items:center;width:25px;height:25px;border:1px solid #ffffff33;border-radius:7px;background:#ffffff22;color:#fff;font-size:19px}
+.assessment-rating {display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:15px;background:#f7f2fb;border:1px solid #ece1f5;border-radius:13px}
+.assessment-rating label {margin:0;font-size:11px}
+.assessment-rating select {flex:1;width:auto;min-width:150px;max-width:260px;min-height:40px;margin:0;padding:7px 11px;background:#fff;font-size:11px}
+.assessment-rating button {background:var(--primary);color:#fff;border-color:transparent;min-height:40px}
+.assessment-footer {text-align:center;font-size:14px;font-weight:700;color:#7b5a95;padding:15px 10px 0}
+.assessment-empty {padding:35px 20px;text-align:center;color:#836393;background:#fff;border:1px dashed #dfccec;border-radius:17px}
+.assessment-empty[hidden] {display:none}
+@media(max-width:750px) {
+ .assessment-teachers-grid {grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+ .assessment-intro {padding:23px}.assessment-intro h1 {font-size:24px}.assessment-score-card {padding:20px}
+ .assessment-criterion {padding:19px}.assessment-criterion h2 {font-size:16px}.assessment-criterion-title {gap:10px}
+}
+@media(max-width:600px) {
+ .assessment-page {gap:20px}.assessment-intro {padding:22px 18px;border-radius:20px}.assessment-intro p {font-size:11px}.assessment-summary {gap:6px}.assessment-summary span {font-size:10px;padding:4px 8px}
+ .assessment-score-grid,.assessment-teachers-grid,.assessment-indicators {grid-template-columns:1fr}
+ .assessment-score-card {gap:9px;border-radius:17px}.assessment-score-card>strong {font-size:28px}
+ .assessment-search {display:block;padding:13px}.assessment-search label {margin-bottom:7px}
+ .assessment-criterion {padding:18px 15px;border-radius:19px;gap:14px}.assessment-criterion-head {gap:9px}.assessment-criterion-title {gap:9px}.assessment-criterion-no {flex-basis:30px;width:30px;height:34px;border-radius:10px;font-size:14px}.assessment-criterion h2 {font-size:15px}
+ .assessment-weight {font-size:10px;padding:4px 7px}.assessment-criterion-title p {font-size:11px}.assessment-criterion-result {font-size:10px}
+ .assessment-indicator {padding:16px}.assessment-indicator-name strong {font-size:12px}.assessment-rating {display:grid;gap:9px;padding:13px}.assessment-rating select {width:100%;max-width:none}.assessment-rating button {width:100%}
+}
+@media print {.assessment-upload-form,.assessment-rating,.assessment-delete,.assessment-search {display:none!important}.assessment-indicators {grid-template-columns:repeat(2,minmax(0,1fr))}.assessment-criterion {break-inside:avoid}.assessment-page {gap:18px}}
