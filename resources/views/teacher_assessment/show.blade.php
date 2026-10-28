@@ -3,7 +3,7 @@
 @section('content')
 @php
 $completedCount = array_sum(array_column($rows, 'completed'));
-$grade = $ratedCount < 11 ? 'التقييم غير مكتمل' : ($ratedPoints >= 90 ? 'ممتاز' : ($ratedPoints >= 80 ? 'جيد جدًا' : ($ratedPoints >= 70 ? 'جيد' : ($ratedPoints >= 60 ? 'مقبول' : 'ضعيف'))));
+$grade = $assessment['grade'];
 @endphp
 <div class="assessment-page">
     <div class="assessment-crumbs">
@@ -29,13 +29,42 @@ $grade = $ratedCount < 11 ? 'التقييم غير مكتمل' : ($ratedPoints >
             <div class="assessment-progress"><div style="width:{{ $covered }}%"></div></div>
             <small>يُحسب من عدد المؤشرات التي رُفع لها شاهد، وفق وزن كل معيار.</small>
         </div>
-        <div class="assessment-score-card">
-            <span>درجة التقييم المعتمدة</span>
-            <strong>{{ $ratedCount ? number_format($ratedPoints, 1) . '%' : '—' }}</strong>
-            <div class="assessment-progress"><div style="width:{{ $ratedPoints }}%"></div></div>
-            <small>{{ $grade }} · {{ $ratedCount }} من ١١ معيارًا تم تقييمها من المديرة.</small>
+        <div class="assessment-score-card {{ $assessment['is_complete'] ? 'assessment-final-complete' : 'assessment-final-pending' }}">
+            <span>نتيجة التقييم النهائي</span>
+            @if($assessment['is_complete'])
+                <strong>{{ number_format($assessment['final_score'], 1) }}%</strong>
+                <div class="assessment-grade-badge">التقدير: {{ $assessment['grade'] }}</div>
+                <div class="assessment-progress"><div style="width:{{ $assessment['final_score'] }}%"></div></div>
+                <small>تم اعتماد الدرجة بعد تقييم المديرة للمعايير الأحد عشر كاملة.</small>
+            @else
+                <strong class="assessment-incomplete-title">قيد التقييم</strong>
+                <div class="assessment-progress"><div style="width:{{ round(100 * $assessment['rated_count'] / max(1, $assessment['total_count'])) }}%"></div></div>
+                <small>قيّمت المديرة {{ $assessment['rated_count'] }} من {{ $assessment['total_count'] }} معيارًا، والمتبقي {{ $assessment['pending_count'] }}. ستظهر النتيجة النهائية بعد اكتمال جميع التقييمات.</small>
+            @endif
         </div>
     </div>
+
+    <section class="assessment-breakdown" aria-label="تفصيل درجات التقييم">
+        <div class="assessment-breakdown-heading">
+            <h2>ملخص درجات المعايير</h2>
+            <p>تُحتسب درجة كل معيار من تقييم المديرة من ٥، مضروبًا في وزنه المحدد. رفع الشواهد لا يضيف درجات تلقائيًا.</p>
+        </div>
+        <div class="assessment-breakdown-rows">
+            @foreach($rows as $no => $row)
+                <div class="assessment-breakdown-row">
+                    <span class="assessment-breakdown-name">{{ $no }}. {{ $row['title'] }}</span>
+                    <span class="assessment-breakdown-rating">
+                        {{ $row['rating'] === null ? 'لم يُقيّم' : $row['rating'] . ' / 5' }}
+                    </span>
+                    <strong>{{ $row['ratingPoints'] === null ? '—' : number_format($row['ratingPoints'], 1) . ' / ' . $row['weight'] . '%' }}</strong>
+                </div>
+            @endforeach
+        </div>
+        <div class="assessment-breakdown-total">
+            <span>النتيجة النهائية</span>
+            <strong>{{ $assessment['is_complete'] ? number_format($assessment['final_score'], 1) . '% · ' . $assessment['grade'] : 'قيد التقييم (' . $assessment['rated_count'] . ' / ' . $assessment['total_count'] . ')' }}</strong>
+        </div>
+    </section>
 
     @if(!$principal)
         <p class="assessment-note">ارفعي الشاهد داخل المؤشر المناسب. يتحول لونه إلى البنفسجي الغامق بمجرد رفع ملف، ويمكنك إضافة أكثر من ملف للمؤشر نفسه. التقييم بالنجوم من صلاحية المديرة فقط.</p>
