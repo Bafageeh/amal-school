@@ -9,6 +9,7 @@ use App\Http\Controllers\EvidenceUploadController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\TeacherEvidenceController;
+use App\Http\Controllers\TeacherAssessmentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/manifest.webmanifest', function () {
@@ -113,9 +114,14 @@ Route::middleware(['auth', 'password.set'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::resource('teachers', TeacherController::class)->except(['show', 'create']);
-    Route::get('/teacher-evidence', [TeacherEvidenceController::class, 'index'])->name('teacher-evidence.index');
-    Route::get('/teacher-evidence/{teacher}', [TeacherEvidenceController::class, 'teacher'])->name('teacher-evidence.teacher');
+    Route::get('/teacher-evidence', [TeacherAssessmentController::class, 'index'])->name('teacher-evidence.index');
+    Route::get('/teacher-evidence/{teacher}', [TeacherAssessmentController::class, 'teacher'])->name('teacher-evidence.teacher');
     Route::get('/teacher-evidence/{teacher}/evidence/{evidence}', [TeacherEvidenceController::class, 'uploads'])->name('teacher-evidence.uploads');
+    Route::get('/my-assessment', [TeacherAssessmentController::class, 'mine'])->name('teacher-assessment.mine');
+    Route::post('/my-assessment/criterion/{criterion}/indicator/{indicator}/upload', [TeacherAssessmentController::class, 'upload'])->name('teacher-assessment.upload');
+    Route::get('/assessment-uploads/{file}/download', [TeacherAssessmentController::class, 'download'])->name('teacher-assessment.download');
+    Route::delete('/assessment-uploads/{file}', [TeacherAssessmentController::class, 'destroy'])->name('teacher-assessment.delete');
+    Route::post('/teacher-evidence/{teacher}/criterion/{criterion}/rate', [TeacherAssessmentController::class, 'rate'])->name('teacher-assessment.rate');
     Route::resource('evidence', EvidenceItemController::class);
     Route::post('/evidence/{evidence}/uploads', [EvidenceUploadController::class, 'store'])->name('evidence.uploads.store');
     Route::get('/uploads/{upload}/preview', [EvidenceUploadController::class, 'preview'])->name('uploads.preview');
