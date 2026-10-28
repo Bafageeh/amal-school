@@ -80,3 +80,27 @@
  .assessment-indicator {padding:16px}.assessment-indicator-name strong {font-size:12px}.assessment-rating {display:grid;gap:9px;padding:13px}.assessment-rating select {width:100%;max-width:none}.assessment-rating button {width:100%}
 }
 @media print {.assessment-upload-form,.assessment-rating,.assessment-delete,.assessment-search {display:none!important}.assessment-indicators {grid-template-columns:repeat(2,minmax(0,1fr))}.assessment-criterion {break-inside:avoid}.assessment-page {gap:18px}}
+
+
+/* Principal-approved final evaluation result, distinct from evidence completion. */
+.assessment-final-result{display:grid;gap:4px;margin-top:10px;padding:11px 12px;border-radius:13px;border:1px solid #e6d9f2;background:#f8f4fd}
+.assessment-final-result span{font-size:11px;color:#806d99;font-weight:800}
+.assessment-final-result strong{font-size:15px;line-height:1.5;color:#6c508f}
+.assessment-final-result small{font-size:11px;line-height:1.6;color:#807093}
+.assessment-final-result.is-final{background:#ebe2f7;border-color:#bba3d9}
+.assessment-final-result.is-final strong{color:#573877;font-weight:900}
+.assessment-final-result.is-pending strong{color:#816b9e}
+.assessment-final-complete{border-color:#bfa6de;background:linear-gradient(130deg,#fff,#f5eefc)}
+.assessment-final-pending{background:#fbf8fe}
+.assessment-incomplete-title{font-size:24px!important;color:#876fa3!important}
+.assessment-grade-badge{display:inline-flex;width:fit-content;background:#e9def6;color:#594080;padding:6px 12px;border-radius:999px;font-weight:900;font-size:13px}
+.assessment-breakdown{background:#fff;border:1px solid #e2d6ef;border-radius:22px;padding:20px;display:grid;gap:14px;box-shadow:0 9px 24px #70559a12}
+.assessment-breakdown-heading h2{font-size:18px!important;color:#533b76!important;margin:0 0 6px!important}
+.assessment-breakdown-heading p{font-size:12px;color:#78658e;line-height:1.8;margin:0}
+.assessment-breakdown-rows{display:grid;gap:0}
+.assessment-breakdown-row{display:grid;grid-template-columns:minmax(0,1fr) 100px 125px;align-items:center;gap:12px;padding:11px 6px;border-bottom:1px solid #efe8f5;font-size:13px}
+.assessment-breakdown-name{font-weight:800;color:#5a447a;line-height:1.5}
+.assessment-breakdown-rating{color:#88739e}
+.assessment-breakdown-row strong{color:#684d8c;font-weight:900;text-align:left}
+.assessment-breakdown-total{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;background:#efe7f9;color:#593e80;padding:15px 17px;border-radius:14px;font-weight:900}
+@media(max-width:630px){.assessment-breakdown{padding:14px}.assessment-breakdown-row{grid-template-columns:minmax(0,1fr) 65px 90px;gap:6px;font-size:11px}.assessment-breakdown-row strong{font-size:11px}.assessment-breakdown-rating{font-size:11px}}
