@@ -115,16 +115,16 @@ function DashboardContent({ user, stats, latestUploads }) {
 
     const actions = [
         {
-            title: 'معايير التقييم',
-            description: 'عرض ورفع الملفات على المعايير',
+            title: isPrincipal ? 'معايير التقييم' : 'معايير تقييمي',
+            description: isPrincipal ? 'عرض وإدارة المعايير' : 'رفع شاهد لكل مؤشر من مؤشرات الأداء',
             icon: '✅',
-            href: ROUTES.evidence,
+            href: isPrincipal ? ROUTES.evidence : '/my-assessment',
         },
         ...(isPrincipal ? [
             {
-                title: 'متابعة ملفات المعلمات',
-                description: 'اختيار معلمة ثم معيار لعرض ملفاتها.',
-                icon: '📂',
+                title: 'المعلمات',
+                description: 'عرض ٣٠ معلمة ومؤشرات الشواهد والتقييم.',
+                icon: '👩‍🏫',
                 href: ROUTES.teacherEvidence,
             },
             {
@@ -150,7 +150,7 @@ function DashboardContent({ user, stats, latestUploads }) {
             <div className="app-stats-grid">
                 {isPrincipal && <StatCard label="المعلمات" value={stats.teachers_count} icon="👩‍🏫" tone="purple" />}
                 <StatCard label="معايير التقييم" value={stats.evidence_count} icon="✅" tone="blue" />
-                <StatCard label={isPrincipal ? 'إجمالي الملفات' : 'ملفاتي'} value={stats.uploads_count} icon="📁" tone="green" />
+                {!isPrincipal && <StatCard label="ملفاتي" value={stats.uploads_count} icon="📁" tone="green" />}
             </div>
 
             <section className="card app-section-card">
