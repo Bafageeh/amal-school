@@ -15,4 +15,7 @@
     </div>
 </section>
 <div data-react-app="dashboard"></div>
+@if(auth()->user()->isPrincipal())
+<div class="school-principal-footer" style="text-align:center;padding:28px 10px 24px;color:#7455a1;font-weight:900;font-size:15px">مديرة المدرسة : مشاعل العنبري</div>
+@endif
 @endsection
