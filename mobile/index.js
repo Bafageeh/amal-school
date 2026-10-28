@@ -1,4 +1,4 @@
 import { registerRootComponent } from 'expo';
-import AppMobileFixedStable from './AppMobileFixedStable';
+import School112App from './School112App';
 
-registerRootComponent(AppMobileFixedStable);
+registerRootComponent(School112App);
