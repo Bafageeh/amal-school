@@ -14,17 +14,17 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/manifest.webmanifest', function () {
     return response()->json([
-        'name' => 'Amal School',
-        'short_name' => 'Amal',
+        'name' => 'المتوسطة الثانية عشر بعد المئة',
+        'short_name' => 'المتوسطة ١١٢',
         'start_url' => '/dashboard',
         'scope' => '/',
         'display' => 'standalone',
-        'background_color' => '#f4f6f8',
-        'theme_color' => '#111827',
+        'background_color' => '#F5EFFC',
+        'theme_color' => '#7B6BAA',
         'dir' => 'rtl',
         'lang' => 'ar',
         'icons' => [
-            ['src' => '/amal-icon.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any maskable'],
+            ['src' => '/images/school-logo.svg', 'sizes' => 'any', 'type' => 'image/svg+xml', 'purpose' => 'any'],
         ],
     ])->header('Content-Type', 'application/manifest+json');
 })->name('pwa.manifest');
