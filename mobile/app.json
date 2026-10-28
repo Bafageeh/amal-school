@@ -1,26 +1,25 @@
 {
   "expo": {
-    "name": "Amal Preview",
-    "slug": "amal-school-clean",
-    "scheme": "amalpreviewclean",
-    "version": "1.0.9",
+    "name": "المتوسطة ١١٢",
+    "slug": "school112",
+    "scheme": "school112",
+    "version": "1.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#EEF4FF",
+    "backgroundColor": "#F5EFFC",
     "android": {
-      "package": "sa.pm.amal.preview",
+      "package": "sa.pm.amal.school112",
       "adaptiveIcon": {
-        "backgroundColor": "#0F172A"
+        "backgroundColor": "#F5EFFC"
       },
       "permissions": [
-        "INTERNET",
-        "REQUEST_INSTALL_PACKAGES"
+        "INTERNET"
       ],
-      "versionCode": 2
+      "versionCode": 3
     },
     "extra": {
       "apiBaseUrl": "https://amal.pm.sa",
-      "cacheKey": "amal-clean-20260507-1958"
+      "cacheKey": "school112-1448-new-assessment"
     },
     "plugins": [
       "expo-font",
