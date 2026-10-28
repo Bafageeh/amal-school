@@ -152,7 +152,7 @@ jobs:
             fi
             mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
             php artisan migrate --force
-            php artisan db:seed --class=TeacherAccountsSeeder --force || true
+            # Production accounts are managed by the school; do not seed or reset them on deployment.
             python3 scripts/patch_mobile_labels_school.py || true
             python3 scripts/patch_mobile_settings_requested.py || true
             python3 scripts/patch_mobile_teacher_add_edit_flow.py || true
