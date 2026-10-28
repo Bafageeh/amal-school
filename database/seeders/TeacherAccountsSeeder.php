@@ -18,6 +18,12 @@ class TeacherAccountsSeeder extends Seeder
             return;
         }
 
+        // Never overwrite school-managed credentials or recreate legacy
+        // teacher01...teacher13 accounts once the approved 1448 roster exists.
+        if (DB::table('users')->where('username', 'teacher-01')->exists()) {
+            return;
+        }
+
         $schoolId = $this->getSchoolId();
         $this->ensurePrincipalAccount($schoolId);
 
@@ -94,7 +100,7 @@ class TeacherAccountsSeeder extends Seeder
             ->first();
 
         if ($existing) {
-            DB::table('users')->where('id', $existing->id)->update($payload);
+            // Existing principal PINs are owned by the school, never reset by seeds.
             return;
         }
 
