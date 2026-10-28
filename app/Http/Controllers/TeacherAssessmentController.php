@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Support\TeacherAssessmentScores;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -51,7 +52,22 @@ class TeacherAssessmentController extends Controller
             ->groupBy('teacher_id')
             ->map(fn ($rows) => $rows->unique(fn ($r) => $r->criterion_no.':'.$r->indicator_no)->count());
 
-        return view('teacher_assessment.index', compact('teachers', 'uploads'));
+        // Retrieve all teacher ratings in one school-scoped query, then compute
+        // complete weighted results for the directory without N+1 queries.
+        $ratingGroups = DB::table('teacher_criterion_ratings')
+            ->where('school_id', Auth::user()->school_id)
+            ->whereIn('teacher_id', $teachers->pluck('id'))
+            ->get(['teacher_id', 'criterion_no', 'rating'])
+            ->groupBy('teacher_id');
+        $criteria = $this->criteria();
+        $teacherScores = [];
+        foreach ($teachers as $teacher) {
+            $ratings = ($ratingGroups->get($teacher->id) ?? collect())
+                ->pluck('rating', 'criterion_no')->all();
+            $teacherScores[$teacher->id] = TeacherAssessmentScores::calculate($criteria, $ratings);
+        }
+
+        return view('teacher_assessment.index', compact('teachers', 'uploads', 'teacherScores'));
     }
 
     public function teacher(User $teacher)
@@ -101,10 +117,12 @@ class TeacherAssessmentController extends Controller
         $totalIndicators = count($criteria) * 5;
         $covered = round($covered, 2);
         $ratedPoints = round($ratedPoints, 2);
-        $ratedCount = count($ratings);
+        $assessment = TeacherAssessmentScores::calculate($criteria, $ratings);
+        // Present the same weighted score in the teacher view and directory.
+        $ratedCount = $assessment['rated_count'];
         return view('teacher_assessment.show', compact(
             'teacher', 'principal', 'rows', 'byIndicator', 'covered',
-            'ratedPoints', 'ratedCount', 'totalIndicators'
+            'ratedPoints', 'ratedCount', 'totalIndicators', 'assessment'
         ));
     }
 
