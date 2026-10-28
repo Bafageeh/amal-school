@@ -10,7 +10,7 @@
 main{width:min(100%,510px);padding:35px 26px;border-radius:32px;background:#ffffffef;border:1px solid #e6d7f0;text-align:center;box-shadow:0 22px 54px #61458020}
 .school-logo{display:block;width:130px;height:142px;object-fit:contain;margin:0 auto 12px;background:#fff;padding:5px;border-radius:26px;box-shadow:0 12px 26px #75579b1d}
 .eyebrow{font-size:12px;color:#8163aa;font-weight:800}h1{font-size:27px;margin:11px 0;color:#553b7c}p{font-size:14px;line-height:2;color:#77678a}.button{display:block;background:linear-gradient(110deg,#9478bc,#6c4b9e);text-decoration:none;padding:16px;color:white;border-radius:17px;font-weight:bold;margin:22px 0 12px;box-shadow:0 8px 20px #7b6baa35}
-.hint{font-size:12px;color:#826e96}.status{color:#755991;margin:12px 0 4px;font-size:12px}.link{color:#70519b;text-decoration:underline}.features{margin:24px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:right}.features span{border-radius:12px;background:#f3ecfa;color:#6a5289;padding:11px;font-size:12px}
+.button.pending{opacity:.66;pointer-events:none}.hint{font-size:12px;color:#826e96}.status{color:#755991;margin:12px 0 4px;font-size:12px}.link{color:#70519b;text-decoration:underline}.features{margin:24px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:right}.features span{border-radius:12px;background:#f3ecfa;color:#6a5289;padding:11px;font-size:12px}
 </style>
 </head>
 <body>
@@ -19,7 +19,7 @@ main{width:min(100%,510px);padding:35px 26px;border-radius:32px;background:#ffff
 <div class="eyebrow">المتوسطة الثانية عشر بعد المئة</div>
 <h1>تطبيق المتوسطة ١١٢</h1>
 <p>منصة المدرسة بين يديكِ: حسابات المديرة والمعلمات، رفع الشواهد لكل مؤشر، التقييم الموزون، ومتابعة النتائج.</p>
-<a class="button" href="/updates/amal-latest.apk" download>تنزيل تطبيق Android</a>
+<a class="button pending" id="download" href="#" aria-disabled="true">يجري تجهيز ملف التثبيت...</a>
 <div id="version" class="status">نسخة Android · تعمل بالإنترنت</div>
 <div class="hint">بعد تنزيل الملف، افتحيه واسمحي بتثبيت التطبيقات من هذا المصدر عند الحاجة.</div>
 <div class="features"><span>✓ حسابات ٣٠ معلمة</span><span>✓ معايير التقييم</span><span>✓ رفع الشواهد</span><span>✓ متابعة النتائج</span></div>
@@ -27,7 +27,14 @@ main{width:min(100%,510px);padding:35px 26px;border-radius:32px;background:#ffff
 </main>
 <script>
 fetch('/updates/android.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{
- if(v && v.version_name)document.getElementById('version').textContent='الإصدار '+v.version_name+' · Android';
+ if(!v || !v.apk_url || !v.version_name) return;
+ const link=document.getElementById('download');
+ link.href='/updates/amal-latest.apk';
+ link.textContent='تنزيل تطبيق Android';
+ link.setAttribute('download','');
+ link.removeAttribute('aria-disabled');
+ link.classList.remove('pending');
+ document.getElementById('version').textContent='الإصدار '+v.version_name+' · Android';
 }).catch(()=>{});
 </script>
 </body>
