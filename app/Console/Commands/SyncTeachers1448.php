@@ -169,6 +169,15 @@ class SyncTeachers1448 extends Command
     {
         $name = preg_replace('/[\x{064B}-\x{065F}\x{0670}\x{0640}]/u', '', $name);
         $name = str_replace(['أ', 'إ', 'آ', 'ٱ', 'ى', 'ة'], ['ا', 'ا', 'ا', 'ا', 'ي', 'ه'], $name);
-        return trim(preg_replace('/\s+/u', ' ', $name));
+        $name = trim(preg_replace('/\\s+/u', ' ', $name));
+        $name = preg_replace('/عبد\\s+العزيز/u', 'عبدالعزيز', $name);
+
+        // Approved identity aliases from the existing local accounts.
+        // Preserve teacher usernames, access and historical evidence when the Word list
+        // expands or corrects a previously shortened name.
+        return [
+            'انتصار عوض العرام' => 'انتصار عوض عرام',
+            'عبير محمد ولي خان' => 'عبير محمد ولي محمد عثمان عزيز خان',
+        ][$name] ?? $name;
     }
 }
