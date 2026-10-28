@@ -69,6 +69,9 @@ if ($isPrincipal) {
         </div>
         @endauth
         <main class="content" id="main-content" tabindex="-1">
+            @if(session('success'))<div class="alert success" role="status">{{ session('success') }}</div>@endif
+            @if($errors->any())<div class="alert error" role="alert">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
+            @yield('content')
             @auth
                 @unless(request()->routeIs('dashboard', 'password.setup'))
                     @php
@@ -87,9 +90,6 @@ if ($isPrincipal) {
                     </nav>
                 @endunless
             @endauth
-            @if(session('success'))<div class="alert success" role="status">{{ session('success') }}</div>@endif
-            @if($errors->any())<div class="alert error" role="alert">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
-            @yield('content')
         </main>
         @auth<footer class="workspace-footer">المتوسطة الثانية عشر بعد المئة <span>ننجز بإبداع، ونوثّق بتميّز</span></footer>@endauth
     </div>
