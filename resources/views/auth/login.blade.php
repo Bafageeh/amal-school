@@ -18,13 +18,14 @@
         <form method="POST" action="{{ route('login.post') }}">
             @csrf
             <label for="login-username">اسم المستخدم</label>
-            <input id="login-username" type="text" name="username" value="{{ old('username') }}" required autofocus autocomplete="username" placeholder="أدخلي اسم المستخدم" dir="auto">
+            <input id="login-username" type="text" name="username" value="{{ old('username') }}" required autofocus autocomplete="username" placeholder="مثال: teacher-01" dir="auto">
+            <p class="muted" style="font-size:12px;margin:6px 0 12px;line-height:1.8">لكل معلمة اسم مستخدم خاص مثل <strong dir="ltr">teacher-01</strong>. كلمة <strong dir="ltr">teacher</strong> وحدها ليست حسابًا. استخدمي الرقم السري المعتمد لحسابك، وليس أي رقم عشوائي.</p>
             <label for="login-password">الرقم السري</label>
             <input id="login-password" type="password" name="password" autocomplete="current-password" inputmode="numeric" maxlength="4" placeholder="الرقم السري من ٤ خانات">
             <label class="remember-control"><input type="checkbox" name="remember" value="1"> تذكرني على هذا الجهاز</label>
             <button class="btn login-submit" type="submit">الدخول إلى المنصة <x-ui-icon name="arrow" size="19" /></button>
         </form>
-        <div class="login-help"><span class="status-dot"></span>حسابات المعلمات تُدار بواسطة مديرة المدرسة.</div>
+        <div class="login-help"><span class="status-dot"></span>إذا لم تعرفي اسم المستخدم أو الرقم السري، راجعي مديرة المدرسة لضبطه من إدارة المعلمات.</div>
         <p class="login-school-name">المتوسطة الثانية عشر بعد المئة</p>
     </section>
 </div>
