@@ -44,8 +44,13 @@ class TeacherAssessmentController extends Controller
     public function index()
     {
         $this->principalOnly();
+        $approvedUsernames = array_map(
+            fn (int $number) => sprintf('teacher-%02d', $number), range(1, 30)
+        );
         $teachers = User::where('school_id', Auth::user()->school_id)
-            ->where('role', 'teacher')->orderBy('name')->get();
+            ->where('role', 'teacher')
+            ->whereIn('username', $approvedUsernames)
+            ->orderBy('name')->get();
         $uploads = DB::table('teacher_indicator_evidences')
             ->where('school_id', Auth::user()->school_id)
             ->get(['teacher_id', 'criterion_no', 'indicator_no'])
