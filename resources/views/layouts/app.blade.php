@@ -12,6 +12,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.jsx', 'resources/js/evidence-show.jsx', 'resources/js/settings.jsx', 'resources/js/teacher-evidence.jsx'])
     @endif
     <link rel="stylesheet" href="{{ asset('css/school-theme.css') }}?v=1448-2">
+    <link rel="stylesheet" href="{{ asset('css/school-back.css') }}?v=1">
 </head>
 <body class="@auth app-auth @else app-guest @endauth">
 <a class="skip-link" href="#main-content">انتقلي إلى المحتوى</a>
@@ -68,6 +69,24 @@ if ($isPrincipal) {
         </div>
         @endauth
         <main class="content" id="main-content" tabindex="-1">
+            @auth
+                @unless(request()->routeIs('dashboard', 'password.setup'))
+                    @php
+                        $backFallback = match (true) {
+                            request()->routeIs('teacher-evidence.teacher', 'teacher-evidence.uploads') => route('teacher-evidence.index'),
+                            request()->routeIs('evidence.show', 'evidence.create', 'evidence.edit') => route('evidence.index'),
+                            request()->routeIs('teachers.edit') => route('teachers.index'),
+                            default => route('dashboard'),
+                        };
+                    @endphp
+                    <nav class="school-back-nav" aria-label="الرجوع للصفحة السابقة">
+                        <a class="school-back-link" data-school-back href="{{ $backFallback }}">
+                            <span class="school-back-arrow" aria-hidden="true">→</span>
+                            <span>رجوع للصفحة السابقة</span>
+                        </a>
+                    </nav>
+                @endunless
+            @endauth
             @if(session('success'))<div class="alert success" role="status">{{ session('success') }}</div>@endif
             @if($errors->any())<div class="alert error" role="alert">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
             @yield('content')
@@ -84,5 +103,6 @@ if ($isPrincipal) {
     @endforeach
 </nav>
 @endauth
+    <script src="{{ asset('js/school-back.js') }}?v=1" defer></script>
 </body>
 </html>
