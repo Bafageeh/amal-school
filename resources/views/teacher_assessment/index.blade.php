@@ -8,6 +8,12 @@
         <p>اختاري معلمة لعرض معاييرها الأحد عشر ومؤشرات رفع الشواهد ونتائج التقييم.</p>
         <div class="assessment-summary"><span>{{ $teachers->count() }} معلمة</span><span>١١ معيار تقييم</span><span>{{ collect($teacherScores)->where('is_complete', true)->count() }} تقييمًا نهائيًا مكتملًا</span></div>
     </section>
+    <div class="assessment-manager-toolbar">
+        <a href="{{ route('teacher-assessment.indicators.index') }}" class="assessment-manage-link">
+            <span aria-hidden="true">✎</span> إدارة مؤشرات المعايير · تعديل / حذف
+        </a>
+        <span>تُطبّق التعديلات على جميع المعلمات</span>
+    </div>
     <div class="assessment-search">
         <label for="teacher-search">البحث عن معلمة</label>
         <input id="teacher-search" type="search" placeholder="اكتبي اسم المعلمة..." autocomplete="off">
@@ -39,7 +45,7 @@
     </div>
     <p id="no-teacher-results" class="assessment-empty" hidden>لا توجد معلمة مطابقة للاسم.</p>
 </div>
-<link rel="stylesheet" href="{{ asset('css/teacher-assessment.css') }}?v=2">
+<link rel="stylesheet" href="{{ asset('css/teacher-assessment.css') }}?v=4">
 <script>
 (() => {
  const input = document.getElementById('teacher-search');
