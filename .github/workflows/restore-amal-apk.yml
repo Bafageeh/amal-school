@@ -1,0 +1,93 @@
+name: Restore School 112 APK download
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/restore-amal-apk.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Retrieve verified School 112 Android release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/amal-recovery
+          gh run download 40786546921 -R Bafageeh/amal-school -n amal-school-auto-update-apk -D /tmp/amal-recovery
+          APK=$(find /tmp/amal-recovery -maxdepth 2 -type f -name '*.apk' | head -n 1)
+          test -n "$APK"
+          test "$(stat -c%s "$APK")" -gt 10000000
+          mv "$APK" /tmp/amal-recovery/amal-latest.apk
+          file /tmp/amal-recovery/amal-latest.apk
+          du -h /tmp/amal-recovery/amal-latest.apk
+
+      - name: Establish authorised SSH to school server
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+          SSH_USER: ${{ secrets.AMAL_SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.AMAL_SSH_PRIVATE_KEY }}
+          SSH_PRIVATE_KEY_B64: ${{ secrets.AMAL_SSH_PRIVATE_KEY_B64 }}
+          PROJECT_PATH_SECRET: ${{ secrets.AMAL_PROJECT_PATH }}
+        run: |
+          set -euo pipefail
+          KEY_FILE="$HOME/.ssh/amal_restore"
+          mkdir -p "$HOME/.ssh"
+          normalize_key() {
+            python3 -c 'import pathlib,sys;p=pathlib.Path(sys.argv[1]);s=p.read_text().replace("\\r","\r").replace("\\n","\n").replace("\r\n","\n").replace("\r","\n");p.write_text(s if s.endswith("\n") else s+"\n")' "$1"
+          }
+          if [ -n "${SSH_PRIVATE_KEY:-}" ]; then
+            printf '%s' "$SSH_PRIVATE_KEY" > "$KEY_FILE"
+            normalize_key "$KEY_FILE"
+          elif [ -n "${SSH_PRIVATE_KEY_B64:-}" ]; then
+            printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d > "$KEY_FILE"
+          else
+            echo 'Missing SSH key'; exit 1
+          fi
+          chmod 600 "$KEY_FILE"
+          ssh-keygen -y -f "$KEY_FILE" >/dev/null
+          PORT="${SSH_PORT:-22}"
+          ssh-keyscan -T 9 -p "$PORT" -H "$SSH_HOST" >> "$HOME/.ssh/known_hosts"
+          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $PORT"
+          DEPLOY_USER=""
+          for candidate in "${SSH_USER:-}" pmsa root; do
+            [ -n "$candidate" ] || continue
+            if ssh $SSH_OPTS "$candidate@$SSH_HOST" "true" >/dev/null 2>&1; then DEPLOY_USER="$candidate"; break; fi
+          done
+          test -n "$DEPLOY_USER" || { echo 'SSH unavailable'; exit 1; }
+          echo "DEPLOY_USER=$DEPLOY_USER" >> "$GITHUB_ENV"
+          echo "SSH_PORT=$PORT" >> "$GITHUB_ENV"
+          echo "PROJECT_PATH=${PROJECT_PATH_SECRET:-/mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api}" >> "$GITHUB_ENV"
+      - name: Restore signed APK and manifest to website
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+        run: |
+          set -euo pipefail
+          KEY_FILE="$HOME/.ssh/amal_restore"
+          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
+          mkdir -p /tmp/amal-update
+          cp /tmp/amal-recovery/amal-latest.apk /tmp/amal-update/amal-latest.apk
+          cat > /tmp/amal-update/android.json <<EOF
+          {
+            "version_name": "1.1.0",
+            "version_code": 92,
+            "apk_url": "https://amal.pm.sa/updates/amal-latest.apk",
+            "published_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH/public/updates'"
+          scp -P "$SSH_PORT" -i "$KEY_FILE" -o IdentitiesOnly=yes /tmp/amal-update/amal-latest.apk /tmp/amal-update/android.json "$DEPLOY_USER@$SSH_HOST:$PROJECT_PATH/public/updates/"
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "chmod 644 '$PROJECT_PATH/public/updates/amal-latest.apk' '$PROJECT_PATH/public/updates/android.json'; ls -lh '$PROJECT_PATH/public/updates/amal-latest.apk'; df -h /mnt/home-storage | tail -n 1"
+      - name: Verify production download
+        run: |
+          set -euo pipefail
+          curl --connect-timeout 8 --max-time 15 --fail -sS https://amal.pm.sa/updates/android.json | grep '"1.1.0"'
+          curl --connect-timeout 8 --max-time 15 --fail -sSI https://amal.pm.sa/updates/amal-latest.apk | grep -iE 'HTTP/|content-length|content-type'
