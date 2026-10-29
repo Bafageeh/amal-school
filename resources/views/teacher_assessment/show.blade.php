@@ -67,7 +67,7 @@ $grade = $assessment['grade'];
     </section>
 
     @if(!$principal)
-        <p class="assessment-note">ارفعي الشاهد داخل المؤشر المناسب. يتحول لونه إلى البنفسجي الغامق بمجرد رفع ملف، ويمكنك إضافة أكثر من ملف للمؤشر نفسه. التقييم بالنجوم من صلاحية المديرة فقط.</p>
+        <p class="assessment-note">اكتبي عنوان الشاهد ووصفًا مختصرًا، ثم أرفقي الملف المناسب داخل المؤشر. يتحول لونه إلى البنفسجي الغامق بمجرد رفع ملف، ويمكنك إضافة أكثر من ملف للمؤشر نفسه. التقييم بالنجوم من صلاحية المديرة فقط.</p>
     @else
         <p class="assessment-note">المؤشر الداكن يعني وجود شاهد مرفوع، والفاتح يعني عدم رفعه بعد. درجة التقييم تختلف عن نسبة اكتمال الشواهد؛ اختاري تقييمًا من ١ إلى ٥ لكل معيار لاعتماد الدرجة الموزونة.</p>
     @endif
@@ -105,20 +105,34 @@ $grade = $assessment['grade'];
                             </div>
                         </div>
                         @foreach($files as $file)
-                            <div class="assessment-attachment">
-                                <a href="{{ route('teacher-assessment.download', $file->id) }}" title="تحميل الملف">📎 {{ $file->original_name }}</a>
-                                <small>{{ \Carbon\Carbon::parse($file->created_at)->format('Y-m-d') }}</small>
-                                <form method="POST" action="{{ route('teacher-assessment.delete', $file->id) }}" onsubmit="return confirm('هل تريدين حذف هذا الشاهد؟');">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="assessment-delete" aria-label="حذف الشاهد">×</button>
-                                </form>
+                            <div class="assessment-evidence-entry">
+                                <div class="assessment-evidence-copy">
+                                    <strong class="assessment-evidence-title">{{ $file->title ?: pathinfo($file->original_name, PATHINFO_FILENAME) }}</strong>
+                                    @if($file->description)
+                                        <p class="assessment-evidence-description">{{ $file->description }}</p>
+                                    @endif
+                                </div>
+                                <div class="assessment-attachment">
+                                    <a href="{{ route('teacher-assessment.download', $file->id) }}" title="تحميل الشاهد">📎 {{ $file->original_name }}</a>
+                                    <small>{{ \Carbon\Carbon::parse($file->created_at)->format('Y-m-d') }}</small>
+                                    <form method="POST" action="{{ route('teacher-assessment.delete', $file->id) }}" onsubmit="return confirm('هل تريدين حذف هذا الشاهد؟');">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="assessment-delete" aria-label="حذف الشاهد">×</button>
+                                    </form>
+                                </div>
                             </div>
                         @endforeach
                         @unless($principal)
                             <form class="assessment-upload-form" method="POST" enctype="multipart/form-data" action="{{ route('teacher-assessment.upload', [$no,$indicatorNo]) }}">
                                 @csrf
-                                <input type="file" name="file" id="indicator-file-{{ $no }}-{{ $indicatorNo }}" required accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.mp4,.mov">
-                                <button type="submit">رفع شاهد <span aria-hidden="true">↑</span></button>
+                                <label for="evidence-title-{{ $no }}-{{ $indicatorNo }}">عنوان الشاهد <span aria-hidden="true">*</span></label>
+                                <input type="text" name="title" id="evidence-title-{{ $no }}-{{ $indicatorNo }}" required maxlength="160" placeholder="مثال: تنفيذ درس بالتعلم التعاوني">
+                                <label for="evidence-description-{{ $no }}-{{ $indicatorNo }}">وصف مختصر للشاهد (اختياري)</label>
+                                <textarea name="description" id="evidence-description-{{ $no }}-{{ $indicatorNo }}" rows="2" maxlength="1000" placeholder="اكتبي ما يوضحه الشاهد وعلاقته بالمؤشر"></textarea>
+                                <label for="indicator-file-{{ $no }}-{{ $indicatorNo }}">إرفاق ملف الشاهد <span aria-hidden="true">*</span></label>
+                                <input type="file" name="file" id="indicator-file-{{ $no }}-{{ $indicatorNo }}" required accept="image/*,video/mp4,.jpg,.jpeg,.png,.webp,.gif,.bmp,.heic,.heif,.mp4,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.pdf">
+                                <small class="assessment-file-hint">الأنواع: صور، MP4، PowerPoint، Word، Excel، PDF · حتى 100 ميجابايت</small>
+                                <button type="submit">حفظ ورفع الشاهد <span aria-hidden="true">↑</span></button>
                             </form>
                         @endunless
                     </div>
@@ -141,5 +155,20 @@ $grade = $assessment['grade'];
     @endforeach
     <div class="assessment-footer">مديرة المدرسة : مشاعل العنبري</div>
 </div>
-<link rel="stylesheet" href="{{ asset('css/teacher-assessment.css') }}?v=2">
+<link rel="stylesheet" href="{{ asset('css/teacher-assessment.css') }}?v=3">
+<script>
+document.querySelectorAll('.assessment-upload-form').forEach(function(form) {
+    form.addEventListener('submit', function(event) {
+        var file = form.querySelector('input[type="file"]').files[0];
+        if (file && file.size > 100 * 1024 * 1024) {
+            event.preventDefault();
+            alert('حجم الملف يتجاوز 100 ميجابايت. يرجى تقليل حجم الملف ثم المحاولة.');
+            return;
+        }
+        var button = form.querySelector('button[type="submit"]');
+        button.disabled = true;
+        button.textContent = 'جارٍ رفع الشاهد...';
+    });
+});
+</script>
 @endsection
