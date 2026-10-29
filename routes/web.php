@@ -114,6 +114,10 @@ Route::middleware(['auth', 'password.set'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::resource('teachers', TeacherController::class)->except(['show', 'create']);
+    Route::get('/teacher-evidence/indicators', [TeacherAssessmentController::class, 'indicators'])->name('teacher-assessment.indicators.index');
+    Route::put('/teacher-evidence/indicators/{criterion}/{indicator}', [TeacherAssessmentController::class, 'updateIndicator'])->name('teacher-assessment.indicators.update');
+    Route::delete('/teacher-evidence/indicators/{criterion}/{indicator}', [TeacherAssessmentController::class, 'deleteIndicator'])->name('teacher-assessment.indicators.delete');
+    Route::post('/teacher-evidence/indicators/{criterion}/{indicator}/restore', [TeacherAssessmentController::class, 'restoreIndicator'])->name('teacher-assessment.indicators.restore');
     Route::get('/teacher-evidence', [TeacherAssessmentController::class, 'index'])->name('teacher-evidence.index');
     Route::get('/teacher-evidence/{teacher}', [TeacherAssessmentController::class, 'teacher'])->name('teacher-evidence.teacher');
     Route::get('/teacher-evidence/{teacher}/evidence/{evidence}', [TeacherEvidenceController::class, 'uploads'])->name('teacher-evidence.uploads');
