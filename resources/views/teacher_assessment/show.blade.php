@@ -66,6 +66,15 @@ $grade = $assessment['grade'];
         </div>
     </section>
 
+    @if($principal)
+        <div class="assessment-manager-toolbar">
+            <a href="{{ route('teacher-assessment.indicators.index') }}" class="assessment-manage-link">
+                <span aria-hidden="true">✎</span> إدارة المؤشرات: تعديل المسمى أو الحذف
+            </a>
+            <span>تنطبق تغييرات المؤشرات على جميع المعلمات</span>
+        </div>
+    @endif
+
     @if(!$principal)
         <p class="assessment-note">أرفقي ملف الشاهد مباشرة داخل المؤشر. يتحول لونه إلى البنفسجي الغامق بمجرد رفع ملف، ويمكنك إضافة أكثر من ملف للمؤشر نفسه. التقييم بالنجوم من صلاحية المديرة فقط.</p>
     @else
@@ -145,7 +154,7 @@ $grade = $assessment['grade'];
     @endforeach
     <div class="assessment-footer">مديرة المدرسة : مشاعل العنبري</div>
 </div>
-<link rel="stylesheet" href="{{ asset('css/teacher-assessment.css') }}?v=3">
+<link rel="stylesheet" href="{{ asset('css/teacher-assessment.css') }}?v=4">
 <script>
 document.querySelectorAll('.assessment-upload-form').forEach(function(form) {
     form.addEventListener('submit', function(event) {
