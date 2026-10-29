@@ -1,0 +1,96 @@
+name: Diagnose Amal site availability
+on:
+  push:
+    branches:
+      - incident/amal-site-diagnostics-20261029
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check public DNS and HTTPS from Actions runner
+        shell: bash
+        run: |
+          echo '--- Domain DNS ---'
+          getent ahostsv4 amal.pm.sa | head -n 5 || true
+          dig +time=2 +tries=1 +short amal.pm.sa A || true
+          echo '--- HTTPS endpoints ---'
+          for url in https://amal.pm.sa/ https://amal.pm.sa/login https://amal.pm.sa/install.html https://amal.pm.sa/updates/android.json; do
+            echo "URL: $url"
+            curl -sS -L -k --connect-timeout 8 --max-time 14 -o /dev/null -w 'code=%{http_code} remote_ip=%{remote_ip} total_seconds=%{time_total} redirect=%{url_effective}\n' "$url" || true
+          done
+      - name: Check hosting services through authorised SSH
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_USER: ${{ secrets.AMAL_SSH_USER }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+          SSH_PRIVATE_KEY: ${{ secrets.AMAL_SSH_PRIVATE_KEY }}
+          SSH_PRIVATE_KEY_B64: ${{ secrets.AMAL_SSH_PRIVATE_KEY_B64 }}
+          PROJECT_PATH: ${{ secrets.AMAL_PROJECT_PATH }}
+        run: |
+          set -eu
+          [ -n "${SSH_HOST:-}" ] || { echo 'Missing SSH host'; exit 0; }
+          mkdir -p ~/.ssh
+          KEY_FILE="$HOME/.ssh/amal_incident_diagnostic"
+          if [ -n "${SSH_PRIVATE_KEY:-}" ]; then
+            printf '%s' "$SSH_PRIVATE_KEY" > "$KEY_FILE"
+            python3 - "$KEY_FILE" <<'PY'
+          import pathlib,sys
+          p=pathlib.Path(sys.argv[1])
+          s=p.read_text().replace('\\r','\r').replace('\\n','\n')
+          p.write_text(s if s.endswith('\n') else s+'\n')
+          PY
+          elif [ -n "${SSH_PRIVATE_KEY_B64:-}" ]; then
+            printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 -d > "$KEY_FILE"
+          else
+            echo 'Missing SSH private key'; exit 0
+          fi
+          chmod 600 "$KEY_FILE"
+          PORT="${SSH_PORT:-22}"
+          ssh-keyscan -T 8 -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          SSH_OPTS="-i $KEY_FILE -p $PORT -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=12 -o StrictHostKeyChecking=accept-new"
+          DEPLOY_USER=""
+          for candidate in "${SSH_USER:-}" pmsa root; do
+            [ -n "$candidate" ] || continue
+            if ssh $SSH_OPTS "$candidate@$SSH_HOST" "echo reachable" >/dev/null 2>&1; then
+              DEPLOY_USER="$candidate"
+              break
+            fi
+          done
+          if [ -z "$DEPLOY_USER" ]; then echo 'SSH_UNAVAILABLE'; exit 0; fi
+          echo "SSH_CONNECTED_USER=$DEPLOY_USER"
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
+          set +e
+          echo '--- Server clock and host ---'
+          date -Iseconds
+          hostname
+          echo '--- Resources ---'
+          df -h / /mnt/home-storage 2>/dev/null | tail -n 4
+          df -i / /mnt/home-storage 2>/dev/null | tail -n 4
+          free -m | head -n 3
+          echo '--- Services ---'
+          for service in httpd nginx php-fpm mariadb mysql named pdns; do
+            echo "$service: $(systemctl is-active "$service" 2>/dev/null)"
+          done
+          echo '--- Socket listeners ---'
+          (ss -ltn 2>/dev/null | grep -E ':80 |:443 ' | head -n 9) || true
+          echo '--- Local HTTP ---'
+          curl --connect-timeout 4 --max-time 10 -sS -o /dev/null -w 'localhost_http=%{http_code} ip=%{remote_ip}\n' -H 'Host: amal.pm.sa' http://127.0.0.1/login || true
+          curl --connect-timeout 4 --max-time 10 -k -sS -o /dev/null -w 'localhost_https=%{http_code} ip=%{remote_ip}\n' --resolve amal.pm.sa:443:127.0.0.1 https://amal.pm.sa/login || true
+          echo '--- Domain from server ---'
+          getent ahostsv4 amal.pm.sa | head -n 5 || true
+          curl --connect-timeout 4 --max-time 10 -sS -o /dev/null -w 'domain_https=%{http_code} ip=%{remote_ip}\n' https://amal.pm.sa/login || true
+          echo '--- App PHP ---'
+          cd /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api || exit 0
+          php -v | head -n 1
+          php artisan --version 2>&1 | head -n 2
+          php artisan migrate:status 2>&1 | tail -n 6
+          echo '--- PHP/Apache errors (count only) ---'
+          find storage/logs -maxdepth 1 -name 'laravel*.log' -type f -printf '%f %s bytes\n' 2>/dev/null | tail -n 5
+          REMOTE
