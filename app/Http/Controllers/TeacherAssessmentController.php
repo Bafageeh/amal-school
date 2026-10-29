@@ -136,9 +136,20 @@ class TeacherAssessmentController extends Controller
         abort_unless(Auth::user()?->isTeacher(), 403);
         $this->validateIndicator($criterion, $indicator);
         $validated = $request->validate([
-            'file' => ['required', 'file', 'max:51200',
-                'mimes:pdf,jpg,jpeg,png,webp,gif,doc,docx,xls,xlsx,ppt,pptx,mp4,mov'],
-        ], ['file.max' => 'الحد الأقصى للملف 50 ميجابايت.']);
+            'title' => ['required', 'string', 'max:160'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'file' => [
+                'required', 'file', 'max:102400',
+                'mimes:jpg,jpeg,png,webp,gif,bmp,heic,heif,mp4,ppt,pptx,doc,docx,xls,xlsx,pdf',
+            ],
+        ], [
+            'title.required' => 'يرجى كتابة عنوان الشاهد.',
+            'title.max' => 'عنوان الشاهد لا يتجاوز 160 حرفًا.',
+            'description.max' => 'الوصف المختصر لا يتجاوز 1000 حرف.',
+            'file.required' => 'يرجى اختيار ملف للشاهد.',
+            'file.mimes' => 'نوع الملف غير مدعوم. اختاري صورة أو فيديو MP4 أو PDF أو Word أو Excel أو PowerPoint.',
+            'file.max' => 'حجم الملف لا يتجاوز 100 ميجابايت.',
+        ]);
 
         $user = Auth::user();
         $file = $validated['file'];
@@ -154,6 +165,9 @@ class TeacherAssessmentController extends Controller
             'teacher_id' => $user->id,
             'criterion_no' => $criterion,
             'indicator_no' => $indicator,
+            'title' => trim($validated['title']),
+            'description' => isset($validated['description']) && filled($validated['description'])
+                ? trim($validated['description']) : null,
             'original_name' => $file->getClientOriginalName(),
             'file_path' => $path,
             'mime_type' => $file->getMimeType(),
