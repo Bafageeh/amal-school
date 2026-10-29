@@ -137,6 +137,7 @@ jobs:
             --exclude='vendor/' \
             --exclude='node_modules/' \
             --exclude='storage/' \
+            --exclude='public/updates/' \
             --exclude='bootstrap/cache/*.php' \
             -e "ssh $SSH_OPTS" \
             ./ "$DEPLOY_USER@$SSH_HOST:$PROJECT_PATH/"
