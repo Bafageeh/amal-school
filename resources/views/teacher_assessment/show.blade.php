@@ -18,8 +18,8 @@ $grade = $assessment['grade'];
         <div class="assessment-eyebrow">منصة تقييم الأداء · ١٤٤٨هـ</div>
         <h1>{{ $principal ? 'تقييم المعلمة' : 'معايير التقييم الخاصة بكِ' }}</h1>
         <p class="assessment-teacher-name">{{ $teacher->name }}</p>
-        <p>١١ معيارًا و٥٥ مؤشرًا وفق الأوزان المحددة في نموذج تقييم أداء المعلم.</p>
-        <div class="assessment-summary"><span>شواهد مكتملة: {{ $completedCount }} / 55</span><span>المعايير: 11</span><span>إجمالي الأوزان: 100%</span></div>
+        <p>{{ count($rows) }} معيارًا و{{ $totalIndicators }} مؤشرًا وفق الأوزان المحددة في نموذج تقييم أداء المعلم.</p>
+        <div class="assessment-summary"><span>شواهد مكتملة: {{ $completedCount }} / {{ $totalIndicators }}</span><span>المعايير: {{ count($rows) }}</span><span>إجمالي الأوزان: 100%</span></div>
     </section>
 
     <div class="assessment-score-grid">
@@ -67,7 +67,7 @@ $grade = $assessment['grade'];
     </section>
 
     @if(!$principal)
-        <p class="assessment-note">اكتبي عنوان الشاهد ووصفًا مختصرًا، ثم أرفقي الملف المناسب داخل المؤشر. يتحول لونه إلى البنفسجي الغامق بمجرد رفع ملف، ويمكنك إضافة أكثر من ملف للمؤشر نفسه. التقييم بالنجوم من صلاحية المديرة فقط.</p>
+        <p class="assessment-note">أرفقي ملف الشاهد مباشرة داخل المؤشر. يتحول لونه إلى البنفسجي الغامق بمجرد رفع ملف، ويمكنك إضافة أكثر من ملف للمؤشر نفسه. التقييم بالنجوم من صلاحية المديرة فقط.</p>
     @else
         <p class="assessment-note">المؤشر الداكن يعني وجود شاهد مرفوع، والفاتح يعني عدم رفعه بعد. درجة التقييم تختلف عن نسبة اكتمال الشواهد؛ اختاري تقييمًا من ١ إلى ٥ لكل معيار لاعتماد الدرجة الموزونة.</p>
     @endif
@@ -85,20 +85,20 @@ $grade = $assessment['grade'];
                 <span class="assessment-weight">الوزن {{ $row['weight'] }}%</span>
             </div>
             <div class="assessment-criterion-result">
-                <span>{{ $row['completed'] }} / 5 مؤشرات مستوفاة</span>
+                <span>{{ $row['completed'] }} / {{ count($row['indicators']) }} مؤشرات مستوفاة</span>
                 <span>اكتمال موزون {{ number_format($row['evidencePoints'], 1) }} / {{ $row['weight'] }}%</span>
                 @if($row['rating'] !== null)
                     <span>التقييم {{ $row['rating'] }}/5 = {{ number_format($row['ratingPoints'],1) }}%</span>
                 @endif
             </div>
-            <div class="assessment-progress"><div style="width:{{ $row['completed'] * 20 }}%"></div></div>
+            <div class="assessment-progress"><div style="width:{{ round(100 * $row['completed'] / max(1, count($row['indicators']))) }}%"></div></div>
             <div class="assessment-indicators">
                 @foreach($row['indicators'] as $ix => $indicator)
                     @php($indicatorNo = $ix + 1)
                     @php($files = $byIndicator[$no][$indicatorNo] ?? [])
                     <div class="assessment-indicator {{ count($files) ? 'is-submitted' : 'is-empty' }}">
                         <div class="assessment-indicator-header">
-                            <span class="assessment-indicator-marker">{{ count($files) ? '✓' : $indicatorNo }}</span>
+                            <span class="assessment-indicator-marker">{{ count($files) ? '✓' : $loop->iteration }}</span>
                             <div class="assessment-indicator-name">
                                 <strong>{{ $indicator }}</strong>
                                 <small>{{ count($files) ? count($files).' شاهد مرفوع' : 'بانتظار رفع الشاهد' }}</small>
@@ -106,12 +106,6 @@ $grade = $assessment['grade'];
                         </div>
                         @foreach($files as $file)
                             <div class="assessment-evidence-entry">
-                                <div class="assessment-evidence-copy">
-                                    <strong class="assessment-evidence-title">{{ $file->title ?: pathinfo($file->original_name, PATHINFO_FILENAME) }}</strong>
-                                    @if($file->description)
-                                        <p class="assessment-evidence-description">{{ $file->description }}</p>
-                                    @endif
-                                </div>
                                 <div class="assessment-attachment">
                                     <a href="{{ route('teacher-assessment.download', $file->id) }}" title="تحميل الشاهد">📎 {{ $file->original_name }}</a>
                                     <small>{{ \Carbon\Carbon::parse($file->created_at)->format('Y-m-d') }}</small>
@@ -125,10 +119,6 @@ $grade = $assessment['grade'];
                         @unless($principal)
                             <form class="assessment-upload-form" method="POST" enctype="multipart/form-data" action="{{ route('teacher-assessment.upload', [$no,$indicatorNo]) }}">
                                 @csrf
-                                <label for="evidence-title-{{ $no }}-{{ $indicatorNo }}">عنوان الشاهد <span aria-hidden="true">*</span></label>
-                                <input type="text" name="title" id="evidence-title-{{ $no }}-{{ $indicatorNo }}" required maxlength="160" placeholder="مثال: تنفيذ درس بالتعلم التعاوني">
-                                <label for="evidence-description-{{ $no }}-{{ $indicatorNo }}">وصف مختصر للشاهد (اختياري)</label>
-                                <textarea name="description" id="evidence-description-{{ $no }}-{{ $indicatorNo }}" rows="2" maxlength="1000" placeholder="اكتبي ما يوضحه الشاهد وعلاقته بالمؤشر"></textarea>
                                 <label for="indicator-file-{{ $no }}-{{ $indicatorNo }}">إرفاق ملف الشاهد <span aria-hidden="true">*</span></label>
                                 <input type="file" name="file" id="indicator-file-{{ $no }}-{{ $indicatorNo }}" required accept="image/*,video/mp4,.jpg,.jpeg,.png,.webp,.gif,.bmp,.heic,.heif,.mp4,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.pdf">
                                 <small class="assessment-file-hint">الأنواع: صور، MP4، PowerPoint، Word، Excel، PDF · حتى 100 ميجابايت</small>

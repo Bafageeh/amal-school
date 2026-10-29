@@ -20,8 +20,8 @@
                 <div class="assessment-avatar">{{ mb_substr($teacher->name, 0, 1) }}</div>
                 <div class="assessment-teacher-main">
                     <strong>{{ $teacher->name }}</strong>
-                    <small>{{ $done }} من ٥٥ مؤشرًا مرفوعًا</small>
-                    <div class="assessment-progress"><div style="width:{{ round($done / 55 * 100) }}%"></div></div>
+                    <small>{{ $done }} من {{ $totalIndicators }} مؤشرًا مرفوعًا</small>
+                    <div class="assessment-progress"><div style="width:{{ round($done / max(1, $totalIndicators) * 100) }}%"></div></div>
                     <div class="assessment-final-result {{ $score['is_complete'] ? 'is-final' : 'is-pending' }}">
                         <span>نتيجة التقييم النهائي</span>
                         @if($score['is_complete'])

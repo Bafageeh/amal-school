@@ -51,9 +51,12 @@ class TeacherAssessmentController extends Controller
             ->where('role', 'teacher')
             ->whereIn('username', $approvedUsernames)
             ->orderBy('name')->get();
+        $criteria = $this->criteria();
+        $totalIndicators = array_sum(array_map(fn ($criterion) => count($criterion['indicators']), $criteria));
         $uploads = DB::table('teacher_indicator_evidences')
             ->where('school_id', Auth::user()->school_id)
             ->get(['teacher_id', 'criterion_no', 'indicator_no'])
+            ->filter(fn ($row) => isset($criteria[$row->criterion_no]['indicators'][$row->indicator_no - 1]))
             ->groupBy('teacher_id')
             ->map(fn ($rows) => $rows->unique(fn ($r) => $r->criterion_no.':'.$r->indicator_no)->count());
 
@@ -64,7 +67,6 @@ class TeacherAssessmentController extends Controller
             ->whereIn('teacher_id', $teachers->pluck('id'))
             ->get(['teacher_id', 'criterion_no', 'rating'])
             ->groupBy('teacher_id');
-        $criteria = $this->criteria();
         $teacherScores = [];
         foreach ($teachers as $teacher) {
             $ratings = ($ratingGroups->get($teacher->id) ?? collect())
@@ -72,7 +74,7 @@ class TeacherAssessmentController extends Controller
             $teacherScores[$teacher->id] = TeacherAssessmentScores::calculate($criteria, $ratings);
         }
 
-        return view('teacher_assessment.index', compact('teachers', 'uploads', 'teacherScores'));
+        return view('teacher_assessment.index', compact('teachers', 'uploads', 'teacherScores', 'totalIndicators'));
     }
 
     public function teacher(User $teacher)
@@ -119,7 +121,7 @@ class TeacherAssessmentController extends Controller
             $rows[$no] = array_merge($criterion, compact('completed', 'evidencePoints', 'rating', 'ratingPoints'));
         }
 
-        $totalIndicators = count($criteria) * 5;
+        $totalIndicators = array_sum(array_map(fn ($criterion) => count($criterion['indicators']), $criteria));
         $covered = round($covered, 2);
         $ratedPoints = round($ratedPoints, 2);
         $assessment = TeacherAssessmentScores::calculate($criteria, $ratings);
@@ -136,16 +138,11 @@ class TeacherAssessmentController extends Controller
         abort_unless(Auth::user()?->isTeacher(), 403);
         $this->validateIndicator($criterion, $indicator);
         $validated = $request->validate([
-            'title' => ['required', 'string', 'max:160'],
-            'description' => ['nullable', 'string', 'max:1000'],
             'file' => [
                 'required', 'file', 'max:102400',
                 'mimes:jpg,jpeg,png,webp,gif,bmp,heic,heif,mp4,ppt,pptx,doc,docx,xls,xlsx,pdf',
             ],
         ], [
-            'title.required' => 'يرجى كتابة عنوان الشاهد.',
-            'title.max' => 'عنوان الشاهد لا يتجاوز 160 حرفًا.',
-            'description.max' => 'الوصف المختصر لا يتجاوز 1000 حرف.',
             'file.required' => 'يرجى اختيار ملف للشاهد.',
             'file.mimes' => 'نوع الملف غير مدعوم. اختاري صورة أو فيديو MP4 أو PDF أو Word أو Excel أو PowerPoint.',
             'file.max' => 'حجم الملف لا يتجاوز 100 ميجابايت.',
@@ -165,9 +162,6 @@ class TeacherAssessmentController extends Controller
             'teacher_id' => $user->id,
             'criterion_no' => $criterion,
             'indicator_no' => $indicator,
-            'title' => trim($validated['title']),
-            'description' => isset($validated['description']) && filled($validated['description'])
-                ? trim($validated['description']) : null,
             'original_name' => $file->getClientOriginalName(),
             'file_path' => $path,
             'mime_type' => $file->getMimeType(),

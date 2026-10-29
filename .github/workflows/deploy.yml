@@ -19,6 +19,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check assessment configuration and scoring
+        run: |
+          php -l config/teacher_assessment.php
+          php -l app/Http/Controllers/TeacherAssessmentController.php
+          php tests/Manual/teacher_assessment_smoke.php
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
