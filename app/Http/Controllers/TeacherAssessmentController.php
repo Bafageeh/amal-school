@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Support\TeacherAssessmentScores;
+use App\Support\TeacherAssessmentIndicators;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,7 @@ class TeacherAssessmentController extends Controller
 {
     private function criteria(): array
     {
-        return config('teacher_assessment', []);
+        return TeacherAssessmentIndicators::forSchool((int) Auth::user()->school_id);
     }
 
     private function principalOnly(): void
@@ -39,6 +40,86 @@ class TeacherAssessmentController extends Controller
             isset($criteria[$criterion], $criteria[$criterion]['indicators'][$indicator - 1]),
             404
         );
+    }
+
+    /**
+     * All 11 criteria and their original indicator identities in one
+     * principal-only management page.
+     */
+    public function indicators()
+    {
+        $this->principalOnly();
+        $criteria = TeacherAssessmentIndicators::managementRows((int) Auth::user()->school_id);
+        $totalActive = array_sum(array_column($criteria, 'active_count'));
+
+        return view('teacher_assessment.indicators', compact('criteria', 'totalActive'));
+    }
+
+    public function updateIndicator(Request $request, int $criterion, int $indicator)
+    {
+        $this->principalOnly();
+        abort_unless(TeacherAssessmentIndicators::isOriginal($criterion, $indicator), 404);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:180'],
+        ], [
+            'title.required' => 'يرجى كتابة مسمى المؤشر.',
+            'title.max' => 'المسمى لا يتجاوز 180 حرفًا.',
+        ]);
+
+        DB::table('teacher_indicator_overrides')->updateOrInsert(
+            [
+                'school_id' => Auth::user()->school_id,
+                'criterion_no' => $criterion,
+                'indicator_no' => $indicator,
+            ],
+            [
+                'title' => trim($validated['title']),
+                'is_deleted' => false,
+                'updated_at' => now(),
+            ]
+        );
+
+        return redirect()->to(route('teacher-assessment.indicators.index').'#criterion-'.$criterion)
+            ->with('success', 'تم تحديث مسمى المؤشر، وسيظهر لجميع المعلمات.');
+    }
+
+    public function deleteIndicator(int $criterion, int $indicator)
+    {
+        $this->principalOnly();
+        abort_unless(TeacherAssessmentIndicators::isOriginal($criterion, $indicator), 404);
+
+        // Preserve old evidence and original key; removing an indicator from
+        // the active list must never attach its evidence to a different one.
+        DB::table('teacher_indicator_overrides')->updateOrInsert(
+            [
+                'school_id' => Auth::user()->school_id,
+                'criterion_no' => $criterion,
+                'indicator_no' => $indicator,
+            ],
+            [
+                'is_deleted' => true,
+                'updated_at' => now(),
+            ]
+        );
+
+        return redirect()->to(route('teacher-assessment.indicators.index').'#criterion-'.$criterion)
+            ->with('success', 'تم حذف المؤشر من العرض، مع حفظ شواهده السابقة لإمكانية استعادته.');
+    }
+
+    public function restoreIndicator(int $criterion, int $indicator)
+    {
+        $this->principalOnly();
+        abort_unless(TeacherAssessmentIndicators::isOriginal($criterion, $indicator), 404);
+
+        DB::table('teacher_indicator_overrides')
+            ->where('school_id', Auth::user()->school_id)
+            ->where('criterion_no', $criterion)
+            ->where('indicator_no', $indicator)
+            ->update(['is_deleted' => false, 'updated_at' => now()]);
+
+        return redirect()->to(route('teacher-assessment.indicators.index').'#criterion-'.$criterion)
+            ->with('success', 'تمت استعادة المؤشر مع مسماه وشواهده السابقة.');
     }
 
     public function index()
@@ -113,7 +194,9 @@ class TeacherAssessmentController extends Controller
             foreach ($criterion['indicators'] as $i => $label) {
                 if (!empty($byIndicator[$no][$i + 1])) $completed++;
             }
-            $evidencePoints = round($criterion['weight'] * $completed / count($criterion['indicators']), 2);
+            $evidencePoints = count($criterion['indicators'])
+                ? round($criterion['weight'] * $completed / count($criterion['indicators']), 2)
+                : 0;
             $covered += $evidencePoints;
             $rating = $ratings[$no] ?? null;
             $ratingPoints = $rating === null ? null : round($criterion['weight'] * $rating / 5, 2);
