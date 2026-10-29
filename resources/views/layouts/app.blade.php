@@ -25,6 +25,7 @@ $navigation = [
 ];
 if ($isPrincipal) {
     $navigation[] = ['route' => 'teacher-evidence.index', 'active' => ['teacher-evidence.*'], 'label' => 'متابعة المعلمات', 'icon' => 'folder'];
+    $navigation[] = ['route' => 'teacher-assessment.indicators.index', 'active' => ['teacher-assessment.indicators.*'], 'label' => 'إدارة المؤشرات', 'icon' => 'check'];
     $navigation[] = ['route' => 'teachers.index', 'active' => ['teachers.*'], 'label' => 'إدارة المعلمات', 'icon' => 'users'];
     $navigation[] = ['route' => 'settings.index', 'active' => ['settings.*'], 'label' => 'الإعدادات', 'icon' => 'settings'];
 }
@@ -97,7 +98,7 @@ if ($isPrincipal) {
 @auth
 <nav class="bottom-tabs" style="--tabs-count:{{ $isPrincipal ? 4 : 2 }}" aria-label="التنقل السريع">
     @foreach($navigation as $item)
-        @if($item['route'] !== 'teachers.index')
+        @if(!in_array($item['route'], ['teachers.index', 'teacher-assessment.indicators.index']))
         <a class="{{ request()->routeIs($item['active']) || ($item['route'] === 'settings.index' && request()->routeIs('teachers.*')) ? 'active' : '' }}" @if(request()->routeIs($item['active'])) aria-current="page" @endif href="{{ route($item['route']) }}"><x-ui-icon :name="$item['icon']" size="22" /><span>{{ $item['label'] }}</span></a>
         @endif
     @endforeach
