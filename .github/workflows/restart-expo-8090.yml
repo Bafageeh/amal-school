@@ -1,54 +1,61 @@
-name: Restart Amal Expo 8090
+name: Restart Amal Expo in PSM (8092)
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/restart-expo-8090.yml'
+
+concurrency:
+  group: amal-mobile-expo-restart
+  cancel-in-progress: true
 
 jobs:
   restart:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Restart Expo on server
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.AMAL_SSH_HOST }}
-          username: ${{ secrets.AMAL_SSH_USER }}
-          key: ${{ secrets.AMAL_SSH_PRIVATE_KEY }}
-          port: ${{ secrets.AMAL_SSH_PORT }}
-          script: |
-            PROJECT_PATH="${{ secrets.AMAL_PROJECT_PATH }}"
-            if [ -z "$PROJECT_PATH" ]; then
-              PROJECT_PATH="/mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api"
-            fi
-            echo "Project: $PROJECT_PATH"
-            echo "Stopping only processes listening on 8081/8090..."
-            if command -v lsof >/dev/null 2>&1; then
-              PIDS="$(lsof -ti:8081 -ti:8090 2>/dev/null || true)"
-              if [ -n "$PIDS" ]; then
-                echo "$PIDS" | xargs -r kill -9 || true
-              fi
-            elif command -v fuser >/dev/null 2>&1; then
-              fuser -k 8081/tcp 8090/tcp || true
-            fi
-            cd "$PROJECT_PATH/mobile"
-            rm -rf .expo node_modules/.cache /home/pmsa/apps/.cache/metro /home/pmsa/apps/.cache/expo
-            mkdir -p /home/pmsa/apps/.cache /home/pmsa/apps/.tmp
-            echo "Starting Expo on 8090..."
-            nohup env BROWSER=none EXPO_NO_TELEMETRY=1 REACT_NATIVE_PACKAGER_HOSTNAME=amal.pm.sa XDG_CACHE_HOME=/home/pmsa/apps/.cache TMPDIR=/home/pmsa/apps/.tmp TMP=/home/pmsa/apps/.tmp TEMP=/home/pmsa/apps/.tmp npx expo start --clear --go --host lan --port 8090 > /home/pmsa/apps/amal-school-expo.log 2>&1 &
-            sleep 18
-            echo "=== Expo log ==="
-            tail -120 /home/pmsa/apps/amal-school-expo.log || true
-            echo "=== Listening ports ==="
-            if command -v lsof >/dev/null 2>&1; then
-              lsof -iTCP:8090 -sTCP:LISTEN || true
-            fi
-            echo "=== Local HTTP test ==="
-            curl -I --max-time 8 http://127.0.0.1:8090 2>&1 || true
-            curl --max-time 8 http://127.0.0.1:8090/status 2>&1 || true
-            echo "=== External-domain HTTP test from server ==="
-            curl -I --max-time 8 http://amal.pm.sa:8090 2>&1 || true
-            echo "Done"
+      - name: Prepare SSH key
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_PRIVATE_KEY: ${{ secrets.AMAL_SSH_PRIVATE_KEY }}
+          SSH_PRIVATE_KEY_B64: ${{ secrets.AMAL_SSH_PRIVATE_KEY_B64 }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          SSH_PORT="${SSH_PORT:-2222}"
+          KEY_FILE="$HOME/.ssh/amal_github_actions"
+          if [ -z "${SSH_HOST:-}" ]; then
+            echo "::error::Missing GitHub secret AMAL_SSH_HOST"
+            exit 1
+          fi
+          mkdir -p "$HOME/.ssh"
+          normalize_key() {
+            python3 -c 'import pathlib, sys; p=pathlib.Path(sys.argv[1]); text=p.read_text(); text=text.replace("\\\\r", "\r").replace("\\\\n", "\n"); text=text.replace("\r\n", "\n").replace("\r", "\n"); p.write_text(text if text.endswith("\n") else text + "\n")' "$1"
+          }
+          KEY_OK=0
+          if [ -n "${SSH_PRIVATE_KEY:-}" ]; then
+            printf '%s' "$SSH_PRIVATE_KEY" > "$KEY_FILE"
+            normalize_key "$KEY_FILE"
+            chmod 600 "$KEY_FILE"
+            ssh-keygen -y -f "$KEY_FILE" >/dev/null 2>&1 && KEY_OK=1 || true
+          fi
+          if [ "$KEY_OK" != "1" ] && [ -n "${SSH_PRIVATE_KEY_B64:-}" ]; then
+            printf '%s' "$SSH_PRIVATE_KEY_B64" | tr -d '\r\n ' | base64 -d > "$KEY_FILE"
+            normalize_key "$KEY_FILE"
+            chmod 600 "$KEY_FILE"
+            ssh-keygen -y -f "$KEY_FILE" >/dev/null 2>&1 && KEY_OK=1 || true
+          fi
+          if [ "$KEY_OK" != "1" ]; then
+            echo "::error::No usable SSH private key found."
+            exit 1
+          fi
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> "$HOME/.ssh/known_hosts"
+
+      - name: Restart only the Amal Expo service
+        env:
+          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
+          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
+        run: |
+          set -euo pipefail
+          SSH_PORT="${SSH_PORT:-2222}"
+          KEY_FILE="$HOME/.ssh/amal_github_actions"
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -i "$KEY_FILE" -p "$SSH_PORT" \
+            "root@$SSH_HOST" "/usr/local/sbin/psm-amal-control restart-expo"
