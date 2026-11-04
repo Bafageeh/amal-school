@@ -1,4 +1,4 @@
-name: Restart Amal Expo in PSM (8092)
+name: Restart Amal Expo in PSM (8093)
 
 on:
   workflow_dispatch:
