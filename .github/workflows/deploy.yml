@@ -1,4 +1,4 @@
-name: Deploy to Amal server
+name: Deploy Amal to independent PSM
 
 on:
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
           SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
         run: |
           set -euo pipefail
-          SSH_PORT="${SSH_PORT:-22}"
+          SSH_PORT="${SSH_PORT:-2222}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
           if [ -z "${SSH_HOST:-}" ]; then
             echo "::error::Missing GitHub secret AMAL_SSH_HOST"
@@ -74,117 +74,50 @@ jobs:
           fi
           ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> "$HOME/.ssh/known_hosts"
 
-      - name: Detect server user and project path
+      - name: Verify independent PSM destination
         env:
           SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
-          SSH_USER: ${{ secrets.AMAL_SSH_USER }}
           SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
-          PROJECT_PATH_SECRET: ${{ secrets.AMAL_PROJECT_PATH }}
         run: |
           set -euo pipefail
-          SSH_PORT="${SSH_PORT:-22}"
+          SSH_PORT="${SSH_PORT:-2222}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
           SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
-          PROJECT_PATH="${PROJECT_PATH_SECRET:-}"
-          DEPLOY_USER=""
-          if [[ "${PROJECT_PATH:-}" == /mnt/* ]]; then
-            CANDIDATES="root ${SSH_USER:-} pmsa"
-          else
-            CANDIDATES="${SSH_USER:-} pmsa root"
-          fi
-          for candidate in $CANDIDATES; do
-            [ -z "$candidate" ] && continue
-            if ssh $SSH_OPTS "$candidate@$SSH_HOST" "echo connected" >/dev/null 2>&1; then
-              DEPLOY_USER="$candidate"
-              break
-            fi
-          done
-          if [ -z "$DEPLOY_USER" ]; then
-            echo "::error::SSH authentication failed."
-            exit 1
-          fi
-          if [ -z "$PROJECT_PATH" ]; then
-            PROJECT_PATH=$(ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" 'set -e
-              for path in \
-                /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api \
-                /home/pmsa/apps/amal-school/amal-school-api \
-                /mnt/home-storage/home/pmsa/apps/amal-school-api \
-                /home/pmsa/apps/amal-school-api
-              do
-                if [ -f "$path/artisan" ]; then echo "$path"; exit 0; fi
-              done
-              echo /mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api
-            ')
-          fi
+          DEPLOY_USER=root
+          PROJECT_PATH=/mnt/HC_Volume_107348367/psm/pm/amal/deployment-source
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "/usr/local/sbin/psm-amal-deploy status"
           echo "DEPLOY_USER=$DEPLOY_USER" >> "$GITHUB_ENV"
           echo "PROJECT_PATH=$PROJECT_PATH" >> "$GITHUB_ENV"
-          echo "Using SSH user: $DEPLOY_USER"
-          echo "Deploying to: $PROJECT_PATH"
 
-      - name: Upload files to server
+      - name: Upload release to PSM staging
         env:
           SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
           SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
         run: |
           set -euo pipefail
-          SSH_PORT="${SSH_PORT:-22}"
+          SSH_PORT="${SSH_PORT:-2222}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
           SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
-          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH'"
           rsync -az --delete \
             --exclude='.git/' \
             --exclude='.env' \
             --exclude='vendor/' \
             --exclude='node_modules/' \
+            --exclude='mobile/node_modules/' \
+            --exclude='mobile/.expo/' \
             --exclude='storage/' \
             --exclude='public/updates/' \
             --exclude='bootstrap/cache/*.php' \
             -e "ssh $SSH_OPTS" \
             ./ "$DEPLOY_USER@$SSH_HOST:$PROJECT_PATH/"
 
-      - name: Run Laravel commands and patch labels
+      - name: Activate with independent PSM PHP and services
         env:
           SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
           SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
         run: |
           set -euo pipefail
-          SSH_PORT="${SSH_PORT:-22}"
+          SSH_PORT="${SSH_PORT:-2222}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
-          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
-          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "set -e
-            cd '$PROJECT_PATH'
-            if [ ! -f .env ]; then echo '::error::.env is missing'; exit 1; fi
-            if [ ! -f vendor/autoload.php ]; then
-              composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
-            fi
-            mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
-            php artisan migrate --force
-            # Production accounts are managed by the school; do not seed or reset them on deployment.
-            python3 scripts/patch_mobile_labels_school.py || true
-            python3 scripts/patch_mobile_settings_requested.py || true
-            python3 scripts/patch_mobile_teacher_add_edit_flow.py || true
-            CACHE_STORE=file php artisan optimize:clear
-            CACHE_STORE=file php artisan config:cache
-            CACHE_STORE=file php artisan view:cache
-          "
-
-      - name: Clear Expo cache and restart Metro
-        env:
-          SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
-          SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
-        run: |
-          set -euo pipefail
-          SSH_PORT="${SSH_PORT:-22}"
-          KEY_FILE="$HOME/.ssh/amal_github_actions"
-          SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
-          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "set -e
-            if command -v lsof >/dev/null 2>&1; then lsof -tiTCP:8081 -sTCP:LISTEN | xargs -r kill -9 || true; fi
-            if command -v fuser >/dev/null 2>&1; then fuser -k 8081/tcp || true; fi
-            cd '$PROJECT_PATH/mobile'
-            npm install --no-audit --no-fund
-            rm -rf .expo node_modules/.cache /home/pmsa/apps/.cache/metro /home/pmsa/apps/.cache/expo
-            mkdir -p /home/pmsa/apps/.cache /home/pmsa/apps/.tmp
-            nohup env BROWSER=none EXPO_NO_TELEMETRY=1 REACT_NATIVE_PACKAGER_HOSTNAME=amal.pm.sa XDG_CACHE_HOME=/home/pmsa/apps/.cache TMPDIR=/home/pmsa/apps/.tmp TMP=/home/pmsa/apps/.tmp TEMP=/home/pmsa/apps/.tmp npx expo start --clear --go --host lan --port 8081 > /home/pmsa/apps/amal-school-expo.log 2>&1 &
-            sleep 8
-            tail -80 /home/pmsa/apps/amal-school-expo.log || true
-          "
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -i "$KEY_FILE" -p "$SSH_PORT" \
+            "$DEPLOY_USER@$SSH_HOST" "/usr/local/sbin/psm-amal-deploy activate"
