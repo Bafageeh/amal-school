@@ -87,7 +87,7 @@ jobs:
           SSH_PORT: ${{ secrets.AMAL_SSH_PORT }}
         run: |
           set -euo pipefail
-          SSH_PORT="${SSH_PORT:-22}"
+          SSH_PORT="${SSH_PORT:-2222}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
           mkdir -p "$HOME/.ssh"
           normalize_key() {
@@ -120,12 +120,12 @@ jobs:
           PROJECT_PATH_SECRET: ${{ secrets.AMAL_PROJECT_PATH }}
         run: |
           set -euo pipefail
-          SSH_PORT="${SSH_PORT:-22}"
+          SSH_PORT="${SSH_PORT:-2222}"
           KEY_FILE="$HOME/.ssh/amal_github_actions"
           SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $SSH_PORT"
-          PROJECT_PATH="${PROJECT_PATH_SECRET:-}"
+          PROJECT_PATH="/mnt/HC_Volume_107348367/psm/pm/amal/source/amal-school-api"
           DEPLOY_USER=""
-          CANDIDATES="${SSH_USER:-} pmsa root"
+          CANDIDATES="root"
           for candidate in $CANDIDATES; do
             [ -z "$candidate" ] && continue
             if ssh $SSH_OPTS "$candidate@$SSH_HOST" "echo connected" >/dev/null 2>&1; then
@@ -138,7 +138,7 @@ jobs:
             exit 1
           fi
           if [ -z "$PROJECT_PATH" ]; then
-            PROJECT_PATH="/mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api"
+            PROJECT_PATH="/mnt/HC_Volume_107348367/psm/pm/amal/source/amal-school-api"
           fi
 
           APK_PATH=$(find mobile/android/app/build/outputs/apk/release -name '*.apk' -type f | head -1)
