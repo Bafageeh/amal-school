@@ -54,18 +54,18 @@ jobs:
           fi
           chmod 600 "$KEY_FILE"
           ssh-keygen -y -f "$KEY_FILE" >/dev/null
-          PORT="${SSH_PORT:-22}"
+          PORT="${SSH_PORT:-2222}"
           ssh-keyscan -T 9 -p "$PORT" -H "$SSH_HOST" >> "$HOME/.ssh/known_hosts"
           SSH_OPTS="-o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -i $KEY_FILE -p $PORT"
           DEPLOY_USER=""
-          for candidate in "${SSH_USER:-}" pmsa root; do
+          for candidate in root; do
             [ -n "$candidate" ] || continue
             if ssh $SSH_OPTS "$candidate@$SSH_HOST" "true" >/dev/null 2>&1; then DEPLOY_USER="$candidate"; break; fi
           done
           test -n "$DEPLOY_USER" || { echo 'SSH unavailable'; exit 1; }
           echo "DEPLOY_USER=$DEPLOY_USER" >> "$GITHUB_ENV"
           echo "SSH_PORT=$PORT" >> "$GITHUB_ENV"
-          echo "PROJECT_PATH=${PROJECT_PATH_SECRET:-/mnt/home-storage/home/pmsa/apps/amal-school/amal-school-api}" >> "$GITHUB_ENV"
+          echo "PROJECT_PATH=/mnt/HC_Volume_107348367/psm/pm/amal/source/amal-school-api" >> "$GITHUB_ENV"
       - name: Restore signed APK and manifest to website
         env:
           SSH_HOST: ${{ secrets.AMAL_SSH_HOST }}
@@ -85,7 +85,7 @@ jobs:
           EOF
           ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "mkdir -p '$PROJECT_PATH/public/updates'"
           scp -P "$SSH_PORT" -i "$KEY_FILE" -o IdentitiesOnly=yes /tmp/amal-update/amal-latest.apk /tmp/amal-update/android.json "$DEPLOY_USER@$SSH_HOST:$PROJECT_PATH/public/updates/"
-          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "chmod 644 '$PROJECT_PATH/public/updates/amal-latest.apk' '$PROJECT_PATH/public/updates/android.json'; ls -lh '$PROJECT_PATH/public/updates/amal-latest.apk'; df -h /mnt/home-storage | tail -n 1"
+          ssh $SSH_OPTS "$DEPLOY_USER@$SSH_HOST" "chmod 644 '$PROJECT_PATH/public/updates/amal-latest.apk' '$PROJECT_PATH/public/updates/android.json'; ls -lh '$PROJECT_PATH/public/updates/amal-latest.apk'; df -h /mnt/HC_Volume_107348367/psm/pm/amal/source/amal-school-api | tail -n 1"
       - name: Verify production download
         run: |
           set -euo pipefail
